@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+src/webview/node_modules/
+
+# Build output
+dist/
+*.vsix
+
+# Source maps
+*.map
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+
+# Env / secrets
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+PRD.txt
+# Runtime data
+.openpost/
+
+# Test coverage
+coverage/
+# Docs
+PRD.txt

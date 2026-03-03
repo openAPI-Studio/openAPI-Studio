@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: var(--vscode-editor-background, #1e1e1e);
+  --fg: var(--vscode-foreground, #cccccc);
+  --input-bg: var(--vscode-input-background, #3c3c3c);
+  --input-border: var(--vscode-input-border, #3c3c3c);
+  --input-fg: var(--vscode-input-foreground, #cccccc);
+  --btn-bg: var(--vscode-button-background, #0e639c);
+  --btn-fg: var(--vscode-button-foreground, #ffffff);
+  --btn-hover: var(--vscode-button-hoverBackground, #1177bb);
+  --border: var(--vscode-panel-border, #2d2d2d);
+  --tab-active: var(--vscode-tab-activeBackground, #1e1e1e);
+  --tab-inactive: var(--vscode-tab-inactiveBackground, #2d2d2d);
+  --success: #4ec9b0;
+  --warning: #dcdcaa;
+  --error: #f44747;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--fg);
+  background: var(--bg);
+}
+
+input, select, textarea, button {
+  font-family: inherit;
+  font-size: inherit;
+}

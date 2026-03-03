@@ -1,0 +1,197 @@
+{
+  "name": "open-post",
+  "displayName": "Open Post",
+  "description": "API Testing. Inside Your Code.",
+  "version": "0.4.0",
+  "publisher": "open-post",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/open-post/open-post"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Testing",
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "openPost.open",
+        "title": "Open Post: New Request",
+        "icon": "$(add)"
+      },
+      {
+        "command": "openPost.openCollection",
+        "title": "Open Post: Open Collection"
+      },
+      {
+        "command": "openPost.addCollection",
+        "title": "New Collection",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "openPost.addEnvironment",
+        "title": "New Environment",
+        "icon": "$(add)"
+      },
+      {
+        "command": "openPost.deleteCollection",
+        "title": "Delete",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "openPost.deleteEnvironment",
+        "title": "Delete",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "openPost.addRequest",
+        "title": "New Request",
+        "icon": "$(add)"
+      },
+      {
+        "command": "openPost.clearHistory",
+        "title": "Clear History",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "openPost.setActiveEnvironment",
+        "title": "Set Active"
+      },
+      {
+        "command": "openPost.exportCollection",
+        "title": "Export Collection",
+        "icon": "$(export)"
+      },
+      {
+        "command": "openPost.importCollection",
+        "title": "Import Collection",
+        "icon": "$(import)"
+      },
+      {
+        "command": "openPost.importOpenApi",
+        "title": "Import OpenAPI / Swagger",
+        "icon": "$(file-code)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "open-post",
+          "title": "Open Post",
+          "icon": "$(zap)"
+        }
+      ]
+    },
+    "views": {
+      "open-post": [
+        {
+          "id": "openPost.collections",
+          "name": "Collections"
+        },
+        {
+          "id": "openPost.environments",
+          "name": "Environments"
+        },
+        {
+          "id": "openPost.history",
+          "name": "History"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "openPost.addCollection",
+          "when": "view == openPost.collections",
+          "group": "navigation"
+        },
+        {
+          "command": "openPost.importCollection",
+          "when": "view == openPost.collections",
+          "group": "navigation"
+        },
+        {
+          "command": "openPost.importOpenApi",
+          "when": "view == openPost.collections",
+          "group": "navigation"
+        },
+        {
+          "command": "openPost.open",
+          "when": "view == openPost.collections",
+          "group": "navigation"
+        },
+        {
+          "command": "openPost.addEnvironment",
+          "when": "view == openPost.environments",
+          "group": "navigation"
+        },
+        {
+          "command": "openPost.clearHistory",
+          "when": "view == openPost.history",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "openPost.deleteCollection",
+          "when": "view == openPost.collections && viewItem == collection",
+          "group": "inline"
+        },
+        {
+          "command": "openPost.exportCollection",
+          "when": "view == openPost.collections && viewItem == collection",
+          "group": "inline"
+        },
+        {
+          "command": "openPost.addRequest",
+          "when": "view == openPost.collections && viewItem == collection",
+          "group": "inline"
+        },
+        {
+          "command": "openPost.deleteEnvironment",
+          "when": "view == openPost.environments && viewItem == environment",
+          "group": "inline"
+        },
+        {
+          "command": "openPost.setActiveEnvironment",
+          "when": "view == openPost.environments && viewItem == environment"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "openPost.open",
+        "key": "ctrl+alt+p",
+        "mac": "cmd+alt+p"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "npm run build:ext && npm run build:webview",
+    "build:ext": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+    "build:webview": "cd src/webview && npm run build",
+    "watch": "npm run build:ext -- --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "test": "vitest run",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.1"
+  }
+}
