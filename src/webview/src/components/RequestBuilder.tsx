@@ -20,7 +20,7 @@ const methodColors: Record<HttpMethod, string> = {
 export function RequestBuilder() {
   const {
     method, url, params, headers, activeTab, name, sourceRequestId, sourceCollectionId,
-    setMethod, setUrl, setParams, setHeaders, setActiveTab, setBody, setAuth, setName, toApiRequest,
+    setMethod, setUrl, setUrlRaw, setParams, setHeaders, setActiveTab, setBody, setAuth, setName, toApiRequest,
   } = useRequestStore();
   const setLoading = useAppStore((s) => s.setLoading);
   const setResponse = useAppStore((s) => s.setResponse);
@@ -37,7 +37,7 @@ export function RequestBuilder() {
     const parsed = parseCurl(value);
     if (parsed) {
       setMethod(parsed.method);
-      setUrl(parsed.url);
+      setUrlRaw(parsed.url);
       setHeaders(parsed.headers.length ? parsed.headers : [{ key: 'Accept', value: 'application/json', enabled: true }]);
       setBody(parsed.body);
       setAuth(parsed.auth);

@@ -1,6 +1,27 @@
 import { create } from 'zustand';
 import { HttpMethod, KeyValue, RequestBody, AuthConfig, ApiRequest } from '../types/messages';
 
+function paramsFromUrl(url: string): KeyValue[] {
+  try {
+    const qIdx = url.indexOf('?');
+    if (qIdx === -1) return [];
+    const search = url.slice(qIdx + 1);
+    const entries = new URLSearchParams(search);
+    const params: KeyValue[] = [];
+    entries.forEach((value, key) => params.push({ key, value, enabled: true }));
+    return params;
+  } catch { return []; }
+}
+
+function urlWithParams(url: string, params: KeyValue[]): string {
+  const enabled = params.filter((p) => p.enabled && p.key.trim());
+  const base = url.split('?')[0];
+  if (enabled.length === 0) return base;
+  const sp = new URLSearchParams();
+  enabled.forEach((p) => sp.append(p.key, p.value));
+  return `${base}?${sp.toString()}`;
+}
+
 interface RequestState {
   method: HttpMethod;
   url: string;
@@ -16,6 +37,7 @@ interface RequestState {
   sourceCollectionId: string | null;
   setMethod: (m: HttpMethod) => void;
   setUrl: (u: string) => void;
+  setUrlRaw: (u: string) => void;
   setParams: (p: KeyValue[]) => void;
   setHeaders: (h: KeyValue[]) => void;
   setBody: (b: RequestBody) => void;
@@ -52,8 +74,18 @@ const defaultState = {
 export const useRequestStore = create<RequestState>((set, get) => ({
   ...defaultState,
   setMethod: (method) => set({ method }),
-  setUrl: (url) => set({ url }),
-  setParams: (params) => set({ params }),
+  // setUrl: parses query params from URL and syncs to params list
+  setUrl: (url) => {
+    const extracted = paramsFromUrl(url);
+    set({ url, params: extracted.length > 0 ? extracted : get().params.length > 0 ? get().params : [] });
+  },
+  // setUrlRaw: sets URL without touching params (used by curl import / loadRequest)
+  setUrlRaw: (url) => set({ url }),
+  // setParams: rebuilds URL query string from params
+  setParams: (params) => {
+    const url = urlWithParams(get().url, params);
+    set({ params, url });
+  },
   setHeaders: (headers) => set({ headers }),
   setBody: (body) => set({ body }),
   setAuth: (auth) => set({ auth }),
@@ -79,7 +111,7 @@ export const useRequestStore = create<RequestState>((set, get) => ({
   loadRequest: (r, collectionId) => set({
     method: r.method,
     url: r.url,
-    params: r.params.length ? r.params : [],
+    params: r.params.length ? r.params : paramsFromUrl(r.url),
     headers: r.headers.length ? r.headers : [...defaultHeaders],
     body: r.body,
     auth: r.auth,
