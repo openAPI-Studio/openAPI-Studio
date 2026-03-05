@@ -20,6 +20,9 @@ export default function App() {
   const setCollections = useAppStore((s) => s.setCollections);
   const setHistory = useAppStore((s) => s.setHistory);
   const addToast = useAppStore((s) => s.addToast);
+  const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
+  const sidebarWidth = useAppStore((s) => s.sidebarWidth);
+  const setSidebarWidth = useAppStore((s) => s.setSidebarWidth);
 
   useEffect(() => {
     onMessage((msg: unknown) => {
@@ -73,9 +76,34 @@ export default function App() {
 
       {/* Main: Sidebar + Split */}
       <div className="flex flex-1 overflow-hidden">
-        <div className="shrink-0 h-full" style={{ borderRight: '1px solid var(--vsc-border-visible)' }}>
+        <div className="shrink-0 h-full overflow-hidden" style={{ width: sidebarCollapsed ? 'auto' : `${sidebarWidth}px` }}>
           <Sidebar />
         </div>
+        {!sidebarCollapsed && (
+          <div
+            className="shrink-0 w-[3px] cursor-col-resize hover:bg-vsc-btn-bg active:bg-vsc-btn-bg transition-colors"
+            style={{ background: 'var(--vsc-border-visible)' }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              const startX = e.clientX;
+              const startW = sidebarWidth;
+              document.body.style.cursor = 'col-resize';
+              document.body.style.userSelect = 'none';
+              const onMove = (ev: MouseEvent) => {
+                setSidebarWidth(Math.max(140, Math.min(400, startW + ev.clientX - startX)));
+              };
+              const onUp = () => {
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+              };
+              document.addEventListener('mousemove', onMove);
+              document.addEventListener('mouseup', onUp);
+            }}
+            onDoubleClick={() => setSidebarWidth(220)}
+          />
+        )}
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
           <ResizableSplit
             top={

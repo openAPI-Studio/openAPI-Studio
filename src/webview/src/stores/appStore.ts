@@ -26,6 +26,7 @@ interface AppState {
   bodyViewMode: 'pretty' | 'raw' | 'tree';
   sidebarTab: 'collections' | 'environments' | 'history';
   sidebarCollapsed: boolean;
+  sidebarWidth: number;
   sidebarSearch: string;
   splitRatio: number;
   showCodePanel: boolean;
@@ -43,6 +44,7 @@ interface AppState {
   setBodyViewMode: (m: AppState['bodyViewMode']) => void;
   setSidebarTab: (t: AppState['sidebarTab']) => void;
   setSidebarCollapsed: (v: boolean) => void;
+  setSidebarWidth: (v: number) => void;
   setSidebarSearch: (v: string) => void;
   setSplitRatio: (v: number) => void;
   setShowCodePanel: (v: boolean) => void;
@@ -65,6 +67,7 @@ export const useAppStore = create<AppState>((set) => ({
   bodyViewMode: 'pretty',
   sidebarTab: 'collections',
   sidebarCollapsed: true,
+  sidebarWidth: 220,
   sidebarSearch: '',
   splitRatio: 0.5,
   showCodePanel: false,
@@ -82,6 +85,7 @@ export const useAppStore = create<AppState>((set) => ({
   setBodyViewMode: (bodyViewMode) => set({ bodyViewMode }),
   setSidebarTab: (sidebarTab) => set({ sidebarTab }),
   setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
+  setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
   setSidebarSearch: (sidebarSearch) => set({ sidebarSearch }),
   setSplitRatio: (splitRatio) => set({ splitRatio }),
   setShowCodePanel: (showCodePanel) => set({ showCodePanel }),
