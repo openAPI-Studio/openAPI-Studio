@@ -29,11 +29,20 @@ export interface AuthConfig {
   awsSigV4?: { accessKey: string; secretKey: string; region: string; service: string };
 }
 
+export interface FormDataItem extends KeyValue {
+  fieldType: 'text' | 'file';
+  filePath?: string;
+  fileName?: string;
+}
+
 export interface RequestBody {
   type: BodyType;
   raw?: string;
   formData?: KeyValue[];
+  formDataFiles?: FormDataItem[];
   graphql?: { query: string; variables: string };
+  binaryPath?: string;
+  binaryName?: string;
 }
 
 export interface ApiRequest {
@@ -93,7 +102,8 @@ export type MessageToWebview =
   | { type: 'environments'; data: Environment[] }
   | { type: 'collections'; data: Collection[] }
   | { type: 'history'; data: HistoryEntry[] }
-  | { type: 'activeEnvironment'; id: string | null };
+  | { type: 'activeEnvironment'; id: string | null }
+  | { type: 'filePicked'; purpose: string; filePath: string; fileName: string };
 
 export type MessageToExtension =
   | { type: 'sendRequest'; data: ApiRequest }
@@ -107,4 +117,5 @@ export type MessageToExtension =
   | { type: 'createCollection'; name: string }
   | { type: 'deleteCollection'; id: string }
   | { type: 'runPreRequestScript'; script: string; request: ApiRequest }
-  | { type: 'runTestScript'; script: string; request: ApiRequest; response: ApiResponse };
+  | { type: 'runTestScript'; script: string; request: ApiRequest; response: ApiResponse }
+  | { type: 'pickFile'; purpose: string };

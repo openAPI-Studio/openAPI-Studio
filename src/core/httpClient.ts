@@ -1,5 +1,7 @@
 import { ApiRequest, ApiResponse, KeyValue } from './types';
 import { interpolateVariables } from './interpolation';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export async function executeRequest(
   request: ApiRequest,
@@ -71,7 +73,7 @@ function buildUrl(base: string, params: KeyValue[]): string {
 function serializeBody(
   request: ApiRequest,
   variables: Record<string, string>
-): { data: string | FormData | undefined; contentType?: string } {
+): { data: string | Buffer | FormData | undefined; contentType?: string } {
   if (request.method === 'GET' || request.method === 'HEAD') {
     return { data: undefined };
   }
@@ -95,6 +97,28 @@ function serializeBody(
         );
       }
       return { data: params.toString(), contentType: 'application/x-www-form-urlencoded' };
+    }
+    case 'form-data': {
+      const form = new FormData();
+      const items = body.formDataFiles || (body.formData || []).map(kv => ({ ...kv, fieldType: 'text' as const }));
+      for (const item of items.filter(f => f.enabled)) {
+        const key = interpolateVariables(item.key, variables);
+        if (item.fieldType === 'file' && item.filePath) {
+          const buf = fs.readFileSync(item.filePath);
+          const blob = new Blob([buf]);
+          form.append(key, blob, item.fileName || path.basename(item.filePath));
+        } else {
+          form.append(key, interpolateVariables(item.value, variables));
+        }
+      }
+      return { data: form as unknown as FormData };
+    }
+    case 'binary': {
+      if (body.binaryPath) {
+        const buf = fs.readFileSync(body.binaryPath);
+        return { data: buf, contentType: 'application/octet-stream' };
+      }
+      return { data: undefined };
     }
     case 'graphql': {
       const gql = body.graphql || { query: '', variables: '{}' };

@@ -1,8 +1,12 @@
 import React, { useEffect } from 'react';
+import { Zap } from 'lucide-react';
 import { RequestBuilder } from './components/RequestBuilder';
 import { ResponseViewer } from './components/ResponseViewer';
 import { Sidebar } from './components/Sidebar';
 import { EnvironmentSelector } from './components/EnvironmentSelector';
+import { ResizableSplit } from './components/ResizableSplit';
+import { ToastContainer } from './components/ToastContainer';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import { useAppStore } from './stores/appStore';
 import { useRequestStore } from './stores/requestStore';
 import { onMessage, postMessage, ApiRequest } from './types/messages';
@@ -15,6 +19,8 @@ export default function App() {
   const setActiveEnvironmentId = useAppStore((s) => s.setActiveEnvironmentId);
   const setCollections = useAppStore((s) => s.setCollections);
   const setHistory = useAppStore((s) => s.setHistory);
+  const addToast = useAppStore((s) => s.addToast);
+  const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
 
   useEffect(() => {
     onMessage((msg: unknown) => {
@@ -23,10 +29,12 @@ export default function App() {
         case 'response':
           setLoading(false);
           setResponse(m.data as ReturnType<typeof useAppStore.getState>['response']);
+          addToast({ type: 'success', message: 'Request completed' });
           break;
         case 'error':
           setLoading(false);
           setError(m.message || 'Unknown error');
+          addToast({ type: 'error', message: m.message || 'Request failed' });
           break;
         case 'environments':
           setEnvironments(m.data as ReturnType<typeof useAppStore.getState>['environments']);
@@ -46,35 +54,43 @@ export default function App() {
       }
     });
 
-    // Load initial data
     postMessage({ type: 'loadCollections' });
     postMessage({ type: 'loadEnvironments' });
     postMessage({ type: 'loadHistory' });
   }, []);
 
   return (
-    <div className="flex h-screen">
-      {/* Sidebar */}
-      <div className="w-64 shrink-0 overflow-hidden">
+    <div className="flex h-screen overflow-hidden">
+      <div className={`shrink-0 overflow-hidden transition-all duration-200 ${sidebarCollapsed ? 'w-10' : 'w-60'}`}>
         <Sidebar />
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ borderLeft: '1px solid var(--vsc-border-visible)' }}>
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
-          <span className="text-sm font-bold">⚡ Open Post</span>
+        <div className="flex items-center justify-between px-3 py-1.5 shrink-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
+          <span className="text-xs font-semibold flex items-center gap-1.5 opacity-80">
+            <Zap size={12} /> Open Post
+          </span>
           <EnvironmentSelector />
         </div>
 
-        {/* Request + Response */}
-        <div className="flex-1 overflow-auto p-4 flex flex-col gap-4">
-          <RequestBuilder />
-          <div className="border-t pt-4" style={{ borderColor: 'var(--border)' }}>
-            <ResponseViewer />
-          </div>
-        </div>
+        {/* Main split: Request | Response */}
+        <ResizableSplit
+          top={
+            <div className="h-full p-3 overflow-auto">
+              <RequestBuilder />
+            </div>
+          }
+          bottom={
+            <div className="h-full p-3 overflow-auto">
+              <ResponseViewer />
+            </div>
+          }
+        />
       </div>
+
+      <ToastContainer />
+      <ConfirmDialog />
     </div>
   );
 }

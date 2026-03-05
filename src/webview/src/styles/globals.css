@@ -2,33 +2,157 @@
 @tailwind components;
 @tailwind utilities;
 
+/* === VS Code CSS variable mapping === */
 :root {
-  --bg: var(--vscode-editor-background, #1e1e1e);
-  --fg: var(--vscode-foreground, #cccccc);
-  --input-bg: var(--vscode-input-background, #3c3c3c);
-  --input-border: var(--vscode-input-border, #3c3c3c);
-  --input-fg: var(--vscode-input-foreground, #cccccc);
-  --btn-bg: var(--vscode-button-background, #0e639c);
-  --btn-fg: var(--vscode-button-foreground, #ffffff);
-  --btn-hover: var(--vscode-button-hoverBackground, #1177bb);
-  --border: var(--vscode-panel-border, #2d2d2d);
-  --tab-active: var(--vscode-tab-activeBackground, #1e1e1e);
-  --tab-inactive: var(--vscode-tab-inactiveBackground, #2d2d2d);
-  --success: #4ec9b0;
-  --warning: #dcdcaa;
-  --error: #f44747;
+  --vsc-bg: var(--vscode-editor-background, #1e1e1e);
+  --vsc-fg: var(--vscode-foreground, #cccccc);
+  --vsc-sidebar-bg: var(--vscode-sideBar-background, var(--vsc-bg));
+  --vsc-sidebar-fg: var(--vscode-sideBar-foreground, var(--vsc-fg));
+  --vsc-input-bg: var(--vscode-input-background, #3c3c3c);
+  --vsc-input-fg: var(--vscode-input-foreground, #cccccc);
+  --vsc-input-border: var(--vscode-input-border, #3c3c3c);
+  --vsc-input-placeholder: var(--vscode-input-placeholderForeground, rgba(204,204,204,0.5));
+  --vsc-btn-bg: var(--vscode-button-background, #0e639c);
+  --vsc-btn-fg: var(--vscode-button-foreground, #ffffff);
+  --vsc-btn-hover: var(--vscode-button-hoverBackground, #1177bb);
+  --vsc-btn-sec-bg: var(--vscode-button-secondaryBackground, rgba(204,204,204,0.2));
+  --vsc-btn-sec-fg: var(--vscode-button-secondaryForeground, #cccccc);
+  --vsc-btn-sec-hover: var(--vscode-button-secondaryHoverBackground, rgba(255,255,255,0.2));
+  --vsc-border: var(--vscode-panel-border, var(--vscode-sideBar-border, var(--vscode-contrastBorder, rgba(128,128,128,0.2))));
+  --vsc-border-visible: color-mix(in srgb, var(--vsc-fg) 15%, transparent);
+  --vsc-tab-active: var(--vscode-tab-activeBackground, #1e1e1e);
+  --vsc-tab-inactive: var(--vscode-tab-inactiveBackground, #2d2d2d);
+  --vsc-list-hover: var(--vscode-list-hoverBackground, rgba(255,255,255,0.05));
+  --vsc-list-active: var(--vscode-list-activeSelectionBackground, rgba(255,255,255,0.1));
+  --vsc-list-active-fg: var(--vscode-list-activeSelectionForeground, #ffffff);
+  --vsc-focus: var(--vscode-focusBorder, #007fd4);
+  --vsc-badge-bg: var(--vscode-badge-background, #4d4d4d);
+  --vsc-badge-fg: var(--vscode-badge-foreground, #ffffff);
+  --vsc-dropdown-bg: var(--vscode-dropdown-background, #3c3c3c);
+  --vsc-dropdown-fg: var(--vscode-dropdown-foreground, #f0f0f0);
+  --vsc-dropdown-border: var(--vscode-dropdown-border, #3c3c3c);
+  --vsc-widget-bg: var(--vscode-editorWidget-background, #252526);
+  --vsc-widget-fg: var(--vscode-editorWidget-foreground, #cccccc);
+  --vsc-widget-border: var(--vscode-editorWidget-border, #454545);
+  --vsc-sash-hover: var(--vscode-sash-hoverBorder, #007fd4);
+  --vsc-notify-bg: var(--vscode-notifications-background, #252526);
+  --vsc-notify-fg: var(--vscode-notifications-foreground, #cccccc);
+  --vsc-notify-border: var(--vscode-notifications-border, #454545);
+  --vsc-success: var(--vscode-testing-iconPassed, #4ec9b0);
+  --vsc-warning: var(--vscode-editorWarning-foreground, #dcdcaa);
+  --vsc-error: var(--vscode-editorError-foreground, #f44747);
+  --vsc-info: var(--vscode-editorInfo-foreground, #75beff);
+  --vsc-link: var(--vscode-textLink-foreground, #3794ff);
+  --vsc-shadow: var(--vscode-widget-shadow, rgba(0,0,0,0.36));
+  --vsc-desc: var(--vscode-descriptionForeground, rgba(204,204,204,0.7));
 }
 
+/* === Base resets === */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
   font-size: var(--vscode-font-size, 13px);
-  color: var(--fg);
-  background: var(--bg);
+  color: var(--vsc-fg);
+  background: var(--vsc-bg);
+  overflow: hidden;
 }
 
-input, select, textarea, button {
-  font-family: inherit;
-  font-size: inherit;
+/* === Focus === */
+*:focus-visible {
+  outline: 1px solid var(--vsc-focus);
+  outline-offset: -1px;
 }
+
+/* === Scrollbar === */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background, rgba(121,121,121,0.4));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground, rgba(100,100,100,0.7));
+}
+::-webkit-scrollbar-thumb:active {
+  background: var(--vscode-scrollbarSlider-activeBackground, rgba(191,191,191,0.4));
+}
+
+/* === Component classes === */
+@layer components {
+  .btn-primary {
+    @apply px-3 py-1.5 rounded text-xs font-medium transition-colors duration-150 cursor-pointer;
+    background: var(--vsc-btn-bg);
+    color: var(--vsc-btn-fg);
+  }
+  .btn-primary:hover { background: var(--vsc-btn-hover); }
+
+  .btn-secondary {
+    @apply px-3 py-1.5 rounded text-xs font-medium transition-colors duration-150 cursor-pointer;
+    background: var(--vsc-btn-sec-bg);
+    color: var(--vsc-btn-sec-fg);
+  }
+  .btn-secondary:hover { background: var(--vsc-btn-sec-hover); }
+
+  .btn-ghost {
+    @apply px-2 py-1 rounded text-xs transition-colors duration-150 cursor-pointer;
+    background: transparent;
+    color: var(--vsc-fg);
+  }
+  .btn-ghost:hover { background: var(--vsc-list-hover); }
+
+  .input-field {
+    @apply px-2 py-1.5 rounded text-xs transition-colors duration-150;
+    background: var(--vsc-input-bg);
+    color: var(--vsc-input-fg);
+    border: 1px solid var(--vsc-input-border);
+  }
+  .input-field::placeholder { color: var(--vsc-input-placeholder); }
+
+  .select-field {
+    @apply px-2 py-1.5 rounded text-xs transition-colors duration-150 cursor-pointer;
+    background: var(--vsc-dropdown-bg);
+    color: var(--vsc-dropdown-fg);
+    border: 1px solid var(--vsc-dropdown-border);
+  }
+
+  .tab-btn {
+    @apply px-3 py-1.5 text-xs capitalize transition-colors duration-150 cursor-pointer border-b-2;
+    background: transparent;
+    border-color: transparent;
+    opacity: 0.6;
+  }
+  .tab-btn:hover { opacity: 0.85; background: var(--vsc-list-hover); }
+  .tab-btn-active {
+    @apply tab-btn;
+    opacity: 1;
+    background: var(--vsc-tab-active);
+    border-color: var(--vsc-btn-bg);
+  }
+
+  .badge {
+    @apply inline-flex items-center justify-center px-1.5 py-0 text-[10px] font-medium rounded-full leading-tight;
+    background: var(--vsc-badge-bg);
+    color: var(--vsc-badge-fg);
+    min-width: 18px;
+  }
+
+  .list-item {
+    @apply px-2 py-1 rounded text-xs transition-colors duration-100 cursor-pointer;
+  }
+  .list-item:hover { background: var(--vsc-list-hover); }
+
+  .skeleton {
+    @apply rounded animate-skeleton;
+    background: var(--vsc-input-bg);
+  }
+
+  .section-label {
+    @apply text-[10px] uppercase tracking-wider font-semibold px-2 py-1;
+    color: var(--vsc-desc);
+  }
+}
+
+/* === Transitions for interactive elements === */
+input, select, textarea, button { font-family: inherit; font-size: inherit; }
+button { border: none; }

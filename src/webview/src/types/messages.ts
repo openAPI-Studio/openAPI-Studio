@@ -14,11 +14,20 @@ export interface AuthConfig {
   awsSigV4?: { accessKey: string; secretKey: string; region: string; service: string };
 }
 
+export interface FormDataItem extends KeyValue {
+  fieldType: 'text' | 'file';
+  filePath?: string;
+  fileName?: string;
+}
+
 export interface RequestBody {
   type: BodyType;
   raw?: string;
   formData?: KeyValue[];
+  formDataFiles?: FormDataItem[];
   graphql?: { query: string; variables: string };
+  binaryPath?: string;
+  binaryName?: string;
 }
 
 export interface ApiRequest {

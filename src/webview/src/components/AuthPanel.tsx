@@ -15,16 +15,12 @@ export function AuthPanel() {
   const auth = useRequestStore((s) => s.auth);
   const setAuth = useRequestStore((s) => s.setAuth);
 
-  const inputStyle = { background: 'var(--input-bg)', color: 'var(--input-fg)', border: '1px solid var(--input-border)' };
-  const inputClass = "w-full px-2 py-1 rounded text-sm";
-
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2.5">
       <select
         value={auth.type}
         onChange={(e) => setAuth({ ...auth, type: e.target.value as AuthType })}
-        className="px-2 py-1 rounded text-sm w-48"
-        style={inputStyle}
+        className="select-field w-48 text-xs"
       >
         {authTypes.map((t) => (
           <option key={t.value} value={t.value}>{t.label}</option>
@@ -32,102 +28,101 @@ export function AuthPanel() {
       </select>
 
       {auth.type === 'none' && (
-        <p className="text-sm opacity-50">No authentication will be used.</p>
+        <p className="text-[11px] opacity-40">No authentication will be used.</p>
       )}
 
       {auth.type === 'basic' && (
         <div className="flex flex-col gap-2">
-          <label className="text-xs opacity-70">Username</label>
-          <input className={inputClass} style={inputStyle} placeholder="Username"
-            value={auth.basic?.username || ''}
-            onChange={(e) => setAuth({ ...auth, basic: { username: e.target.value, password: auth.basic?.password || '' } })}
-          />
-          <label className="text-xs opacity-70">Password</label>
-          <input className={inputClass} style={inputStyle} type="password" placeholder="Password"
-            value={auth.basic?.password || ''}
-            onChange={(e) => setAuth({ ...auth, basic: { username: auth.basic?.username || '', password: e.target.value } })}
-          />
+          <Field label="Username" value={auth.basic?.username || ''}
+            onChange={(v) => setAuth({ ...auth, basic: { username: v, password: auth.basic?.password || '' } })} />
+          <Field label="Password" type="password" value={auth.basic?.password || ''}
+            onChange={(v) => setAuth({ ...auth, basic: { username: auth.basic?.username || '', password: v } })} />
         </div>
       )}
 
       {auth.type === 'bearer' && (
-        <div className="flex flex-col gap-2">
-          <label className="text-xs opacity-70">Token</label>
-          <input className={inputClass} style={inputStyle} placeholder="Enter bearer token"
-            value={auth.bearer?.token || ''}
-            onChange={(e) => setAuth({ ...auth, bearer: { token: e.target.value } })}
-          />
-        </div>
+        <Field label="Token" value={auth.bearer?.token || ''} placeholder="Enter bearer token"
+          onChange={(v) => setAuth({ ...auth, bearer: { token: v } })} />
       )}
 
       {auth.type === 'api-key' && (
         <div className="flex flex-col gap-2">
-          <label className="text-xs opacity-70">Key</label>
-          <input className={inputClass} style={inputStyle} placeholder="X-API-Key"
-            value={auth.apiKey?.key || ''}
-            onChange={(e) => setAuth({ ...auth, apiKey: { ...auth.apiKey!, key: e.target.value, value: auth.apiKey?.value || '', addTo: auth.apiKey?.addTo || 'header' } })}
-          />
-          <label className="text-xs opacity-70">Value</label>
-          <input className={inputClass} style={inputStyle} placeholder="API key value"
-            value={auth.apiKey?.value || ''}
-            onChange={(e) => setAuth({ ...auth, apiKey: { ...auth.apiKey!, value: e.target.value } })}
-          />
-          <label className="text-xs opacity-70">Add to</label>
-          <select className="px-2 py-1 rounded text-sm w-32" style={inputStyle}
-            value={auth.apiKey?.addTo || 'header'}
-            onChange={(e) => setAuth({ ...auth, apiKey: { ...auth.apiKey!, addTo: e.target.value as 'header' | 'query' } })}
-          >
-            <option value="header">Header</option>
-            <option value="query">Query Param</option>
-          </select>
+          <Field label="Key" value={auth.apiKey?.key || ''} placeholder="X-API-Key"
+            onChange={(v) => setAuth({ ...auth, apiKey: { ...auth.apiKey!, key: v, value: auth.apiKey?.value || '', addTo: auth.apiKey?.addTo || 'header' } })} />
+          <Field label="Value" value={auth.apiKey?.value || ''} placeholder="API key value"
+            onChange={(v) => setAuth({ ...auth, apiKey: { ...auth.apiKey!, value: v } })} />
+          <div>
+            <label className="text-[10px] opacity-50 block mb-1">Add to</label>
+            <select className="select-field w-32 text-xs"
+              value={auth.apiKey?.addTo || 'header'}
+              onChange={(e) => setAuth({ ...auth, apiKey: { ...auth.apiKey!, addTo: e.target.value as 'header' | 'query' } })}
+            >
+              <option value="header">Header</option>
+              <option value="query">Query Param</option>
+            </select>
+          </div>
         </div>
       )}
 
       {auth.type === 'oauth2' && (
         <div className="flex flex-col gap-2">
-          <label className="text-xs opacity-70">Grant Type</label>
-          <select className="px-2 py-1 rounded text-sm w-48" style={inputStyle}
-            value={auth.oauth2?.grantType || 'authorization_code'}
-            onChange={(e) => setAuth({ ...auth, oauth2: { ...auth.oauth2!, grantType: e.target.value as 'authorization_code' | 'client_credentials' } })}
-          >
-            <option value="authorization_code">Authorization Code</option>
-            <option value="client_credentials">Client Credentials</option>
-          </select>
-          {['authUrl', 'tokenUrl', 'clientId', 'clientSecret', 'scope'].map((field) => (
-            <div key={field}>
-              <label className="text-xs opacity-70">{field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</label>
-              <input className={inputClass} style={inputStyle}
-                type={field.includes('Secret') ? 'password' : 'text'}
-                placeholder={field}
-                value={(auth.oauth2 as Record<string, string>)?.[field] || ''}
-                onChange={(e) => setAuth({ ...auth, oauth2: { ...auth.oauth2!, [field]: e.target.value } as typeof auth.oauth2 })}
-              />
-            </div>
+          <div>
+            <label className="text-[10px] opacity-50 block mb-1">Grant Type</label>
+            <select className="select-field w-48 text-xs"
+              value={auth.oauth2?.grantType || 'authorization_code'}
+              onChange={(e) => setAuth({ ...auth, oauth2: { ...auth.oauth2!, grantType: e.target.value as 'authorization_code' | 'client_credentials' } })}
+            >
+              <option value="authorization_code">Authorization Code</option>
+              <option value="client_credentials">Client Credentials</option>
+            </select>
+          </div>
+          {[
+            { key: 'authUrl', label: 'Auth URL' },
+            { key: 'tokenUrl', label: 'Token URL' },
+            { key: 'clientId', label: 'Client ID' },
+            { key: 'clientSecret', label: 'Client Secret', type: 'password' },
+            { key: 'scope', label: 'Scope' },
+          ].map(({ key, label, type }) => (
+            <Field key={key} label={label} type={type} value={(auth.oauth2 as Record<string, string>)?.[key] || ''}
+              onChange={(v) => setAuth({ ...auth, oauth2: { ...auth.oauth2!, [key]: v } as typeof auth.oauth2 })} />
           ))}
           {auth.oauth2?.accessToken && (
-            <div>
-              <label className="text-xs opacity-70">Access Token (obtained)</label>
-              <input className={inputClass} style={inputStyle} readOnly value={auth.oauth2.accessToken} />
-            </div>
+            <Field label="Access Token (obtained)" value={auth.oauth2.accessToken} readOnly />
           )}
         </div>
       )}
 
       {auth.type === 'aws-sigv4' && (
         <div className="flex flex-col gap-2">
-          {['accessKey', 'secretKey', 'region', 'service'].map((field) => (
-            <div key={field}>
-              <label className="text-xs opacity-70">{field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}</label>
-              <input className={inputClass} style={inputStyle}
-                type={field.includes('ecret') ? 'password' : 'text'}
-                placeholder={field}
-                value={(auth.awsSigV4 as Record<string, string>)?.[field] || ''}
-                onChange={(e) => setAuth({ ...auth, awsSigV4: { ...auth.awsSigV4!, [field]: e.target.value } as typeof auth.awsSigV4 })}
-              />
-            </div>
+          {[
+            { key: 'accessKey', label: 'Access Key' },
+            { key: 'secretKey', label: 'Secret Key', type: 'password' },
+            { key: 'region', label: 'Region' },
+            { key: 'service', label: 'Service' },
+          ].map(({ key, label, type }) => (
+            <Field key={key} label={label} type={type} value={(auth.awsSigV4 as Record<string, string>)?.[key] || ''}
+              onChange={(v) => setAuth({ ...auth, awsSigV4: { ...auth.awsSigV4!, [key]: v } as typeof auth.awsSigV4 })} />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, type, placeholder, readOnly }: {
+  label: string; value: string; onChange?: (v: string) => void; type?: string; placeholder?: string; readOnly?: boolean;
+}) {
+  return (
+    <div>
+      <label className="text-[10px] opacity-50 block mb-1">{label}</label>
+      <input
+        className="input-field w-full text-xs"
+        type={type || 'text'}
+        placeholder={placeholder || label}
+        value={value}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        readOnly={readOnly}
+      />
     </div>
   );
 }

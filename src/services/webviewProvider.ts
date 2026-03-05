@@ -177,6 +177,15 @@ export class OpenPostPanel {
       case 'loadHistory':
         this.postMessage({ type: 'history', data: store.loadHistory() });
         break;
+      case 'pickFile': {
+        const uris = await vscode.window.showOpenDialog({ canSelectMany: false, openLabel: 'Select File' });
+        if (uris && uris.length > 0) {
+          const filePath = uris[0].fsPath;
+          const fileName = path.basename(filePath);
+          this.panel.webview.postMessage({ type: 'filePicked', purpose: msg.purpose, filePath, fileName });
+        }
+        break;
+      }
     }
   }
 
@@ -196,7 +205,7 @@ export class OpenPostPanel {
 <head><meta charset="UTF-8"><title>Open Post</title>
 <style>body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:20px;}code{background:var(--vscode-textCodeBlock-background);padding:2px 6px;border-radius:3px;}</style>
 </head>
-<body><h2>⚡ Open Post</h2><p>Webview not built. Run <code>npm run build:webview</code> first.</p></body>
+<body><h2><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>Open Post</h2><p>Webview not built. Run <code>npm run build:webview</code> first.</p></body>
 </html>`;
     }
   }

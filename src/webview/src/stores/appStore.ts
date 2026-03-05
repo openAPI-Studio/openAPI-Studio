@@ -1,6 +1,19 @@
 import { create } from 'zustand';
 import { ApiResponse, Environment, Collection, HistoryEntry } from '../types/messages';
 
+export interface Toast {
+  id: string;
+  type: 'success' | 'error' | 'info';
+  message: string;
+  duration?: number;
+}
+
+export interface ConfirmDialog {
+  title: string;
+  message: string;
+  onConfirm: () => void;
+}
+
 interface AppState {
   response: ApiResponse | null;
   loading: boolean;
@@ -12,6 +25,11 @@ interface AppState {
   responseTab: 'body' | 'headers';
   bodyViewMode: 'pretty' | 'raw' | 'tree';
   sidebarTab: 'collections' | 'environments' | 'history';
+  sidebarCollapsed: boolean;
+  sidebarSearch: string;
+  splitRatio: number;
+  toasts: Toast[];
+  confirmDialog: ConfirmDialog | null;
   setResponse: (r: ApiResponse | null) => void;
   setLoading: (l: boolean) => void;
   setError: (e: string | null) => void;
@@ -22,6 +40,13 @@ interface AppState {
   setResponseTab: (t: AppState['responseTab']) => void;
   setBodyViewMode: (m: AppState['bodyViewMode']) => void;
   setSidebarTab: (t: AppState['sidebarTab']) => void;
+  setSidebarCollapsed: (v: boolean) => void;
+  setSidebarSearch: (v: string) => void;
+  setSplitRatio: (v: number) => void;
+  addToast: (t: Omit<Toast, 'id'>) => void;
+  removeToast: (id: string) => void;
+  showConfirm: (d: ConfirmDialog) => void;
+  hideConfirm: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -35,6 +60,11 @@ export const useAppStore = create<AppState>((set) => ({
   responseTab: 'body',
   bodyViewMode: 'pretty',
   sidebarTab: 'collections',
+  sidebarCollapsed: false,
+  sidebarSearch: '',
+  splitRatio: 0.5,
+  toasts: [],
+  confirmDialog: null,
   setResponse: (response) => set({ response, error: null }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
@@ -45,4 +75,14 @@ export const useAppStore = create<AppState>((set) => ({
   setResponseTab: (responseTab) => set({ responseTab }),
   setBodyViewMode: (bodyViewMode) => set({ bodyViewMode }),
   setSidebarTab: (sidebarTab) => set({ sidebarTab }),
+  setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
+  setSidebarSearch: (sidebarSearch) => set({ sidebarSearch }),
+  setSplitRatio: (splitRatio) => set({ splitRatio }),
+  addToast: (t) => {
+    const id = Date.now().toString() + Math.random().toString(36).slice(2);
+    set((s) => ({ toasts: [...s.toasts, { ...t, id }] }));
+  },
+  removeToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+  showConfirm: (confirmDialog) => set({ confirmDialog }),
+  hideConfirm: () => set({ confirmDialog: null }),
 }));
