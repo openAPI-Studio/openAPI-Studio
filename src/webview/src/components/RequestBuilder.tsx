@@ -10,7 +10,9 @@ import { AuthPanel } from './AuthPanel';
 import { STANDARD_HEADERS, HEADER_VALUES } from '../data/headers';
 import { ScriptEditor } from './ScriptEditor';
 import { CodeExportPanel } from './CodeExportPanel';
+import { AIPromptPanel } from './AIPromptPanel';
 import { LANGUAGES, CodeLanguage } from '../utils/codeGen';
+import { PROMPT_DIALECTS, PromptDialect } from '../utils/promptGen';
 
 const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
@@ -37,6 +39,8 @@ export function RequestBuilder() {
   const [showSaveMenu, setShowSaveMenu] = React.useState(false);
   const [editingName, setEditingName] = React.useState(false);
   const [codeLang, setCodeLang] = React.useState<CodeLanguage>('curl');
+  const [codePanelMode, setCodePanelMode] = React.useState<'code' | 'prompt'>('code');
+  const [promptDialect, setPromptDialect] = React.useState<PromptDialect>('describe');
 
   const hasSource = !!(sourceRequestId && sourceCollectionId);
 
@@ -243,24 +247,47 @@ export function RequestBuilder() {
             />
             <div className="flex flex-col overflow-hidden" style={{ width: `${(1 - codePanelRatio) * 100}%` }}>
               <div className="flex items-center justify-between shrink-0 px-2 py-1" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
-                <span className="text-[10px] uppercase tracking-wider font-semibold opacity-50">Code</span>
+                <div className="flex gap-0">
+                  <button
+                    onClick={() => setCodePanelMode('code')}
+                    className={`text-[10px] px-1.5 py-0.5 rounded-l transition-colors ${codePanelMode === 'code' ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
+                    style={codePanelMode === 'code' ? { background: 'var(--vsc-btn-bg)', color: 'var(--vsc-btn-fg)' } : {}}
+                  >Code</button>
+                  <button
+                    onClick={() => setCodePanelMode('prompt')}
+                    className={`text-[10px] px-1.5 py-0.5 rounded-r transition-colors ${codePanelMode === 'prompt' ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
+                    style={codePanelMode === 'prompt' ? { background: 'var(--vsc-btn-bg)', color: 'var(--vsc-btn-fg)' } : {}}
+                  >AI Prompt</button>
+                </div>
                 <div className="flex items-center gap-1">
-                  <select
-                    value={codeLang}
-                    onChange={(e) => setCodeLang(e.target.value as CodeLanguage)}
-                    className="select-field text-[10px] py-0 px-1"
-                  >
-                    {LANGUAGES.map((l) => (
-                      <option key={l.value} value={l.value}>{l.label}</option>
-                    ))}
-                  </select>
+                  {codePanelMode === 'code' ? (
+                    <select
+                      value={codeLang}
+                      onChange={(e) => setCodeLang(e.target.value as CodeLanguage)}
+                      className="select-field text-[10px] py-0 px-1"
+                    >
+                      {LANGUAGES.map((l) => (
+                        <option key={l.value} value={l.value}>{l.label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <select
+                      value={promptDialect}
+                      onChange={(e) => setPromptDialect(e.target.value as PromptDialect)}
+                      className="select-field text-[10px] py-0 px-1"
+                    >
+                      {PROMPT_DIALECTS.map((d) => (
+                        <option key={d.value} value={d.value}>{d.label}</option>
+                      ))}
+                    </select>
+                  )}
                   <button onClick={() => setShowCodePanel(false)} className="btn-ghost p-0.5" title="Close code panel">
                     <X size={12} />
                   </button>
                 </div>
               </div>
               <div style={{ flex: '1 1 0%', overflow: 'auto', minHeight: 0, padding: '0.5rem' }}>
-                <CodeExportPanel lang={codeLang} />
+                {codePanelMode === 'code' ? <CodeExportPanel lang={codeLang} /> : <AIPromptPanel dialect={promptDialect} />}
               </div>
             </div>
           </>
