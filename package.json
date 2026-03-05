@@ -2,7 +2,7 @@
   "name": "open-post",
   "displayName": "Open Post",
   "description": "API Testing. Inside Your Code.",
-  "version": "0.6.0",
+  "version": "0.8.0",
   "publisher": "open-post",
   "repository": {
     "type": "git",
@@ -57,6 +57,11 @@
         "command": "openPost.clearHistory",
         "title": "Clear History",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "openPost.renameRequest",
+        "title": "Rename",
+        "icon": "$(edit)"
       },
       {
         "command": "openPost.setActiveEnvironment",
@@ -160,6 +165,11 @@
         {
           "command": "openPost.setActiveEnvironment",
           "when": "view == openPost.environments && viewItem == environment"
+        },
+        {
+          "command": "openPost.renameRequest",
+          "when": "view == openPost.collections && viewItem == request",
+          "group": "inline"
         }
       ]
     },

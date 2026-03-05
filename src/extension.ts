@@ -45,6 +45,9 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('openPost.addRequest', (item) => {
       collectionTree.addRequest(item);
     }),
+    vscode.commands.registerCommand('openPost.renameRequest', (item) => {
+      collectionTree.renameRequest(item);
+    }),
     vscode.commands.registerCommand('openPost.exportCollection', (item) => {
       collectionTree.exportCollection(item);
     }),

@@ -81,6 +81,18 @@ export class CollectionTreeProvider implements vscode.TreeDataProvider<TreeItem>
     this.refresh();
   }
 
+  async renameRequest(item: RequestItem) {
+    const newName = await vscode.window.showInputBox({ prompt: 'Rename request', value: item.request.name });
+    if (!newName || newName === item.request.name) return;
+    const collections = loadCollections();
+    for (const col of collections) {
+      const req = col.requests.find(r => r.id === item.request.id);
+      if (req) { req.name = newName; break; }
+    }
+    saveCollections(collections);
+    this.refresh();
+  }
+
   async addRequest(item: CollectionItem) {
     const name = await vscode.window.showInputBox({ prompt: 'Request name', placeHolder: 'Get Users' });
     if (!name) return;
