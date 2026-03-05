@@ -3,12 +3,13 @@ import { useRequestStore } from '../stores/requestStore';
 import { useAppStore } from '../stores/appStore';
 import { postMessage, HttpMethod } from '../types/messages';
 import { parseCurl } from '../types/curlParser';
-import { Check, Save, ChevronDown } from 'lucide-react';
+import { Check, Save, ChevronDown, Code } from 'lucide-react';
 import { KeyValueEditor } from './KeyValueEditor';
 import { BodyEditor } from './BodyEditor';
 import { AuthPanel } from './AuthPanel';
 import { STANDARD_HEADERS, HEADER_VALUES } from '../data/headers';
 import { ScriptEditor } from './ScriptEditor';
+import { CodeExportModal } from './CodeExportModal';
 
 const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
@@ -30,6 +31,7 @@ export function RequestBuilder() {
   const [curlImported, setCurlImported] = React.useState(false);
   const [showSaveMenu, setShowSaveMenu] = React.useState(false);
   const [editingName, setEditingName] = React.useState(false);
+  const [showCodeExport, setShowCodeExport] = React.useState(false);
 
   const hasSource = !!(sourceRequestId && sourceCollectionId);
 
@@ -176,7 +178,16 @@ export function RequestBuilder() {
             </>
           )}
         </div>
+        <button
+          onClick={() => setShowCodeExport(true)}
+          className="btn-ghost shrink-0 flex items-center gap-1 text-[11px]"
+          title="Export as code"
+        >
+          <Code size={12} />
+        </button>
       </div>
+
+      {showCodeExport && <CodeExportModal onClose={() => setShowCodeExport(false)} />}
 
       {/* Tabs */}
       <div className="flex gap-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
