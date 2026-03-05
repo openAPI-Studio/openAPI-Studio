@@ -3,13 +3,13 @@ import { useRequestStore } from '../stores/requestStore';
 import { useAppStore } from '../stores/appStore';
 import { postMessage, HttpMethod } from '../types/messages';
 import { parseCurl } from '../types/curlParser';
-import { Check, Save, ChevronDown, Code } from 'lucide-react';
+import { Check, Save, ChevronDown, Pencil, Code, X } from 'lucide-react';
 import { KeyValueEditor } from './KeyValueEditor';
 import { BodyEditor } from './BodyEditor';
 import { AuthPanel } from './AuthPanel';
 import { STANDARD_HEADERS, HEADER_VALUES } from '../data/headers';
 import { ScriptEditor } from './ScriptEditor';
-import { CodeExportModal } from './CodeExportModal';
+import { CodeExportPanel } from './CodeExportPanel';
 
 const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
@@ -27,11 +27,14 @@ export function RequestBuilder() {
   const setResponse = useAppStore((s) => s.setResponse);
   const setError = useAppStore((s) => s.setError);
   const addToast = useAppStore((s) => s.addToast);
+  const showCodePanel = useAppStore((s) => s.showCodePanel);
+  const setShowCodePanel = useAppStore((s) => s.setShowCodePanel);
+  const codePanelRatio = useAppStore((s) => s.codePanelRatio);
+  const setCodePanelRatio = useAppStore((s) => s.setCodePanelRatio);
   const collections = useAppStore((s) => s.collections);
   const [curlImported, setCurlImported] = React.useState(false);
   const [showSaveMenu, setShowSaveMenu] = React.useState(false);
   const [editingName, setEditingName] = React.useState(false);
-  const [showCodeExport, setShowCodeExport] = React.useState(false);
 
   const hasSource = !!(sourceRequestId && sourceCollectionId);
 
@@ -86,9 +89,9 @@ export function RequestBuilder() {
   const tabs = ['params', 'headers', 'body', 'auth', 'scripts'] as const;
 
   return (
-    <div className="flex flex-col gap-2.5">
-      {/* Request name */}
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-2.5 h-full overflow-hidden">
+      {/* Request name + save buttons */}
+      <div className="flex items-center gap-2 shrink-0">
         {editingName ? (
           <input
             className="input-field text-xs font-medium flex-1"
@@ -100,17 +103,58 @@ export function RequestBuilder() {
           />
         ) : (
           <button
-            className="text-xs font-medium opacity-60 hover:opacity-100 transition-opacity truncate text-left"
+            className="group flex items-center gap-1 text-xs font-medium opacity-60 hover:opacity-100 transition-opacity truncate text-left"
             onClick={() => setEditingName(true)}
             title="Click to rename"
           >
             {name || 'Untitled Request'}
+            <Pencil size={10} className="opacity-0 group-hover:opacity-60 transition-opacity shrink-0" />
           </button>
         )}
+        <div className="flex items-center gap-1 ml-auto shrink-0">
+          {hasSource && (
+            <button onClick={saveUpdate} className="btn-primary shrink-0 p-1.5" title="Save">
+              <Save size={13} />
+            </button>
+          )}
+          <div className="relative">
+            <button
+              onClick={() => setShowSaveMenu(!showSaveMenu)}
+              className="btn-secondary shrink-0 flex items-center gap-0.5 p-1.5"
+              title="Save to collection"
+            >
+              <Save size={13} />
+              <ChevronDown size={9} />
+            </button>
+            {showSaveMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowSaveMenu(false)} />
+                <div
+                  className="absolute right-0 top-full mt-1 z-50 rounded shadow-vsc py-1 min-w-[160px]"
+                  style={{ background: 'var(--vsc-dropdown-bg)', border: '1px solid var(--vsc-dropdown-border)' }}
+                >
+                  {collections.length === 0 ? (
+                    <p className="px-3 py-2 text-[11px] opacity-40">No collections yet</p>
+                  ) : (
+                    collections.map((col) => (
+                      <button
+                        key={col.id}
+                        className="w-full text-left px-3 py-1.5 text-[11px] transition-colors hover:bg-vsc-list-hover"
+                        onClick={() => saveCopyTo(col.id)}
+                      >
+                        {col.name}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* URL bar */}
-      <div className="flex gap-1">
+      <div className="flex gap-1 shrink-0">
         <select
           value={method}
           onChange={(e) => setMethod(e.target.value as HttpMethod)}
@@ -138,77 +182,76 @@ export function RequestBuilder() {
           Send
           <span className="text-[9px] opacity-50">⌘↵</span>
         </button>
-
-        {/* Save buttons */}
-        {hasSource && (
-          <button onClick={saveUpdate} className="btn-primary shrink-0 flex items-center gap-1" title="Update this request in its collection">
-            <Save size={12} /> Save
-          </button>
-        )}
-        <div className="relative">
-          <button
-            onClick={() => setShowSaveMenu(!showSaveMenu)}
-            className="btn-secondary shrink-0 flex items-center gap-1"
-            title="Save a copy to collection"
-          >
-            {hasSource ? 'Save As' : <Save size={12} />}
-            <ChevronDown size={10} />
-          </button>
-          {showSaveMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowSaveMenu(false)} />
-              <div
-                className="absolute right-0 top-full mt-1 z-50 rounded shadow-vsc py-1 min-w-[160px]"
-                style={{ background: 'var(--vsc-dropdown-bg)', border: '1px solid var(--vsc-dropdown-border)' }}
-              >
-                {collections.length === 0 ? (
-                  <p className="px-3 py-2 text-[11px] opacity-40">No collections yet</p>
-                ) : (
-                  collections.map((col) => (
-                    <button
-                      key={col.id}
-                      className="w-full text-left px-3 py-1.5 text-[11px] transition-colors hover:bg-vsc-list-hover"
-                      onClick={() => saveCopyTo(col.id)}
-                    >
-                      {col.name}
-                    </button>
-                  ))
-                )}
-              </div>
-            </>
-          )}
-        </div>
         <button
-          onClick={() => setShowCodeExport(true)}
-          className="btn-ghost shrink-0 flex items-center gap-1 text-[11px]"
-          title="Export as code"
+          onClick={() => setShowCodePanel(!showCodePanel)}
+          className={`shrink-0 p-1.5 rounded transition-colors ${showCodePanel ? 'btn-primary' : 'btn-ghost'}`}
+          style={!showCodePanel ? { background: 'var(--vsc-input-bg)' } : {}}
+          title="Toggle code view"
         >
-          <Code size={12} />
+          <Code size={13} />
         </button>
       </div>
 
-      {showCodeExport && <CodeExportModal onClose={() => setShowCodeExport(false)} />}
+      {/* Tabs + Code split */}
+      <div className="flex flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+        {/* Left: tabs + content */}
+        <div className="flex flex-col overflow-hidden" style={{ width: showCodePanel ? `${codePanelRatio * 100}%` : '100%' }}>
+          <div className="flex gap-0 shrink-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={activeTab === tab ? 'tab-btn-active' : 'tab-btn'}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <div style={{ flex: '1 1 0%', overflow: 'auto', minHeight: 0, paddingTop: '0.5rem' }}>
+            {activeTab === 'params' && <KeyValueEditor items={params} onChange={setParams} keyPlaceholder="Parameter" valuePlaceholder="Value" />}
+            {activeTab === 'headers' && <KeyValueEditor items={headers} onChange={setHeaders} keyPlaceholder="Header" valuePlaceholder="Value" keySuggestions={STANDARD_HEADERS} valueSuggestionsMap={HEADER_VALUES} />}
+            {activeTab === 'body' && <BodyEditor />}
+            {activeTab === 'auth' && <AuthPanel />}
+            {activeTab === 'scripts' && <ScriptEditor />}
+          </div>
+        </div>
 
-      {/* Tabs */}
-      <div className="flex gap-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={activeTab === tab ? 'tab-btn-active' : 'tab-btn'}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab content */}
-      <div className="min-h-[100px]">
-        {activeTab === 'params' && <KeyValueEditor items={params} onChange={setParams} keyPlaceholder="Parameter" valuePlaceholder="Value" />}
-        {activeTab === 'headers' && <KeyValueEditor items={headers} onChange={setHeaders} keyPlaceholder="Header" valuePlaceholder="Value" keySuggestions={STANDARD_HEADERS} valueSuggestionsMap={HEADER_VALUES} />}
-        {activeTab === 'body' && <BodyEditor />}
-        {activeTab === 'auth' && <AuthPanel />}
-        {activeTab === 'scripts' && <ScriptEditor />}
+        {/* Draggable divider + Code panel */}
+        {showCodePanel && (
+          <>
+            <div
+              className="shrink-0 w-[3px] cursor-col-resize hover:bg-vsc-btn-bg active:bg-vsc-btn-bg transition-colors"
+              style={{ background: 'var(--vsc-border-visible)' }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                const container = e.currentTarget.parentElement!;
+                const startX = e.clientX;
+                const startRatio = codePanelRatio;
+                const w = container.getBoundingClientRect().width;
+                const onMove = (ev: MouseEvent) => {
+                  const delta = ev.clientX - startX;
+                  const next = Math.max(0.2, Math.min(0.8, startRatio + delta / w));
+                  setCodePanelRatio(next);
+                };
+                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+              }}
+              onDoubleClick={() => setCodePanelRatio(0.5)}
+            />
+            <div className="flex flex-col overflow-hidden" style={{ width: `${(1 - codePanelRatio) * 100}%` }}>
+              <div className="flex items-center justify-between shrink-0 px-2 py-1" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
+                <span className="text-[10px] uppercase tracking-wider font-semibold opacity-50">Code</span>
+                <button onClick={() => setShowCodePanel(false)} className="btn-ghost p-0.5" title="Close code panel">
+                  <X size={12} />
+                </button>
+              </div>
+              <div style={{ flex: '1 1 0%', overflow: 'auto', minHeight: 0, padding: '0.5rem' }}>
+                <CodeExportPanel />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

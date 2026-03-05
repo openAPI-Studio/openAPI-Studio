@@ -156,36 +156,25 @@ export function ResponseViewer() {
 function SyntaxColoredJson({ json }: { json: unknown }) {
   const text = JSON.stringify(json, null, 2);
   const parts: React.ReactNode[] = [];
-  // Simple regex-based syntax coloring
   const regex = /("(?:\\.|[^"\\])*")\s*(:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|(\btrue\b|\bfalse\b)|(\bnull\b)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
     if (match[1] && match[2]) {
-      // key
       parts.push(<span key={match.index} style={{ color: '#9cdcfe' }}>{match[1]}</span>);
       parts.push(match[2]);
     } else if (match[1]) {
-      // string value
       parts.push(<span key={match.index} style={{ color: '#ce9178' }}>{match[1]}</span>);
     } else if (match[3]) {
-      // number
       parts.push(<span key={match.index} style={{ color: '#b5cea8' }}>{match[3]}</span>);
-    } else if (match[4]) {
-      // boolean
-      parts.push(<span key={match.index} style={{ color: '#569cd6' }}>{match[4]}</span>);
-    } else if (match[5]) {
-      // null
-      parts.push(<span key={match.index} style={{ color: '#569cd6' }}>{match[5]}</span>);
+    } else if (match[4] || match[5]) {
+      parts.push(<span key={match.index} style={{ color: '#569cd6' }}>{match[0]}</span>);
     }
     lastIndex = match.index + match[0].length;
   }
   if (lastIndex < text.length) parts.push(text.slice(lastIndex));
-
   return <>{parts}</>;
 }
 

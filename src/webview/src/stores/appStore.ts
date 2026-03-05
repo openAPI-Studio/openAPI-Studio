@@ -28,6 +28,8 @@ interface AppState {
   sidebarCollapsed: boolean;
   sidebarSearch: string;
   splitRatio: number;
+  showCodePanel: boolean;
+  codePanelRatio: number;
   toasts: Toast[];
   confirmDialog: ConfirmDialog | null;
   setResponse: (r: ApiResponse | null) => void;
@@ -43,6 +45,8 @@ interface AppState {
   setSidebarCollapsed: (v: boolean) => void;
   setSidebarSearch: (v: string) => void;
   setSplitRatio: (v: number) => void;
+  setShowCodePanel: (v: boolean) => void;
+  setCodePanelRatio: (v: number) => void;
   addToast: (t: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
   showConfirm: (d: ConfirmDialog) => void;
@@ -60,9 +64,11 @@ export const useAppStore = create<AppState>((set) => ({
   responseTab: 'body',
   bodyViewMode: 'pretty',
   sidebarTab: 'collections',
-  sidebarCollapsed: false,
+  sidebarCollapsed: true,
   sidebarSearch: '',
   splitRatio: 0.5,
+  showCodePanel: false,
+  codePanelRatio: 0.5,
   toasts: [],
   confirmDialog: null,
   setResponse: (response) => set({ response, error: null }),
@@ -78,6 +84,8 @@ export const useAppStore = create<AppState>((set) => ({
   setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
   setSidebarSearch: (sidebarSearch) => set({ sidebarSearch }),
   setSplitRatio: (splitRatio) => set({ splitRatio }),
+  setShowCodePanel: (showCodePanel) => set({ showCodePanel }),
+  setCodePanelRatio: (codePanelRatio) => set({ codePanelRatio }),
   addToast: (t) => {
     const id = Date.now().toString() + Math.random().toString(36).slice(2);
     set((s) => ({ toasts: [...s.toasts, { ...t, id }] }));

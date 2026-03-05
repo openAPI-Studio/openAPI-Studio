@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Zap } from 'lucide-react';
 import { RequestBuilder } from './components/RequestBuilder';
 import { ResponseViewer } from './components/ResponseViewer';
+import { Sidebar } from './components/Sidebar';
 import { EnvironmentSelector } from './components/EnvironmentSelector';
 import { ResizableSplit } from './components/ResizableSplit';
 import { ToastContainer } from './components/ToastContainer';
@@ -70,19 +71,26 @@ export default function App() {
         <EnvironmentSelector />
       </div>
 
-      {/* Main split: Request (top) | Response (bottom) */}
-      <ResizableSplit
-        top={
-          <div className="h-full p-3 overflow-auto">
-            <RequestBuilder />
-          </div>
-        }
-        bottom={
-          <div className="h-full p-3 overflow-auto">
-            <ResponseViewer />
-          </div>
-        }
-      />
+      {/* Main: Sidebar + Split */}
+      <div className="flex flex-1 overflow-hidden">
+        <div className="shrink-0 h-full" style={{ borderRight: '1px solid var(--vsc-border-visible)' }}>
+          <Sidebar />
+        </div>
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          <ResizableSplit
+            top={
+              <div className="h-full p-3 flex flex-col overflow-hidden">
+                <RequestBuilder />
+              </div>
+            }
+            bottom={
+              <div className="h-full p-3 overflow-auto">
+                <ResponseViewer />
+              </div>
+            }
+          />
+        </div>
+      </div>
 
       <ToastContainer />
       <ConfirmDialog />

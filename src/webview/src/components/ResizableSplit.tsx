@@ -33,7 +33,7 @@ export function ResizableSplit({ top, bottom }: { top: React.ReactNode; bottom: 
 
   return (
     <div ref={containerRef} className="flex flex-col flex-1 overflow-hidden">
-      <div className="overflow-auto" style={{ flexBasis: `${ratio * 100}%`, minHeight: 0 }}>
+      <div className="overflow-hidden flex flex-col" style={{ flex: `0 0 ${ratio * 100}%`, minHeight: 0 }}>
         {top}
       </div>
       <div
@@ -45,7 +45,7 @@ export function ResizableSplit({ top, bottom }: { top: React.ReactNode; bottom: 
       >
         <div className="absolute inset-x-0 -top-1 -bottom-1" />
       </div>
-      <div className="overflow-auto flex-1" style={{ minHeight: 0 }}>
+      <div className="overflow-auto" style={{ flex: '1 1 0%', minHeight: 0 }}>
         {bottom}
       </div>
     </div>
