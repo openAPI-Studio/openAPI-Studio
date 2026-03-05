@@ -27,7 +27,7 @@ export function KeyValueEditor({ items, onChange, keyPlaceholder = 'Key', valueP
   return (
     <div className="flex flex-col gap-1">
       {items.map((item, i) => (
-        <div key={i} className="flex items-center gap-1 group">
+        <div key={i} className="flex items-center gap-1 group min-w-0">
           <input
             type="checkbox"
             checked={item.enabled}
@@ -43,7 +43,7 @@ export function KeyValueEditor({ items, onChange, keyPlaceholder = 'Key', valueP
             />
           ) : (
             <input
-              className="input-field flex-1 text-[11px] py-1"
+              className="input-field flex-1 min-w-0 text-[11px] py-1"
               placeholder={keyPlaceholder}
               value={item.key}
               onChange={(e) => update(i, 'key', e.target.value)}
@@ -58,7 +58,7 @@ export function KeyValueEditor({ items, onChange, keyPlaceholder = 'Key', valueP
             />
           ) : (
             <input
-              className="input-field flex-1 text-[11px] py-1"
+              className="input-field flex-1 min-w-0 text-[11px] py-1"
               placeholder={valuePlaceholder}
               value={item.value}
               onChange={(e) => update(i, 'value', e.target.value)}

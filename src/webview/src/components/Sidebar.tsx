@@ -178,18 +178,20 @@ export function Sidebar() {
             >+ New Environment</button>
 
             {editingEnv && (
-              <div className="flex flex-col gap-2 p-2 rounded" style={{ background: 'var(--vsc-input-bg)', border: '1px solid var(--vsc-border-visible)' }}>
+              <div className="flex flex-col gap-2 p-2 rounded overflow-hidden" style={{ background: 'var(--vsc-input-bg)', border: '1px solid var(--vsc-border-visible)' }}>
                 <input
-                  className="input-field text-[11px] py-1"
+                  className="input-field text-[11px] py-1 w-full min-w-0"
                   value={editingEnv.name}
                   onChange={(e) => setEditingEnv({ ...editingEnv, name: e.target.value })}
                 />
-                <KeyValueEditor
-                  items={editingEnv.variables}
-                  onChange={(variables) => setEditingEnv({ ...editingEnv, variables })}
-                  keyPlaceholder="Variable"
-                  valuePlaceholder="Value"
-                />
+                <div className="overflow-hidden">
+                  <KeyValueEditor
+                    items={editingEnv.variables}
+                    onChange={(variables) => setEditingEnv({ ...editingEnv, variables })}
+                    keyPlaceholder="Variable"
+                    valuePlaceholder="Value"
+                  />
+                </div>
                 <div className="flex gap-1">
                   <button className="btn-primary py-1 text-[11px]" onClick={() => {
                     postMessage({ type: 'saveEnvironment', data: editingEnv });

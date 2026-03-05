@@ -74,11 +74,17 @@ export async function executeRequest(
 }
 
 function buildUrl(base: string, params: KeyValue[]): string {
-  const url = new URL(base);
-  for (const p of params) {
-    url.searchParams.append(p.key, p.value);
+  try {
+    const url = new URL(base);
+    for (const p of params) {
+      url.searchParams.append(p.key, p.value);
+    }
+    return url.toString();
+  } catch {
+    // If URL is invalid (e.g. unresolved variables), append params manually
+    const qs = params.map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`).join('&');
+    return qs ? `${base}?${qs}` : base;
   }
-  return url.toString();
 }
 
 function serializeBody(

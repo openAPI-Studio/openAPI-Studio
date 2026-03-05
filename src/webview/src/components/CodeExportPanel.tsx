@@ -67,19 +67,27 @@ function highlightCode(code: string, lang: CodeLanguage): React.ReactNode[] {
 }
 
 export function CodeExportPanel({ lang }: { lang: CodeLanguage }) {
-  const toApiRequest = useRequestStore((s) => s.toApiRequest);
+  const reqState = useRequestStore();
   const response = useAppStore((s) => s.response);
   const addToast = useAppStore((s) => s.addToast);
+  const environments = useAppStore((s) => s.environments);
+  const activeEnvironmentId = useAppStore((s) => s.activeEnvironmentId);
 
-  // Subscribe to all request fields that affect code generation
-  const url = useRequestStore((s) => s.url);
-  const method = useRequestStore((s) => s.method);
-  const headers = useRequestStore((s) => s.headers);
-  const params = useRequestStore((s) => s.params);
-  const body = useRequestStore((s) => s.body);
-  const auth = useRequestStore((s) => s.auth);
+  const envVars = useMemo(() => {
+    const env = environments.find(e => e.id === activeEnvironmentId);
+    if (!env) return {};
+    const vars: Record<string, string> = {};
+    for (const v of env.variables.filter(v => v.enabled && v.key)) vars[v.key] = v.value;
+    return vars;
+  }, [environments, activeEnvironmentId]);
 
-  const code = useMemo(() => generateCode(toApiRequest(), lang, response), [lang, response, url, method, headers, params, body, auth]);
+  const code = useMemo(() => {
+    try {
+      return generateCode(reqState.toApiRequest(), lang, response, envVars);
+    } catch {
+      return '// Error generating code';
+    }
+  }, [lang, response, envVars, reqState.url, reqState.method, reqState.headers, reqState.params, reqState.body, reqState.auth]);
   const highlighted = useMemo(() => highlightCode(code, lang), [code, lang]);
 
   const copy = () => {

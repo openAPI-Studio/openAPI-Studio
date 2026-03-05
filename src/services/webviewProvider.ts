@@ -177,6 +177,11 @@ export class OpenPostPanel {
       case 'loadHistory':
         this.postMessage({ type: 'history', data: store.loadHistory() });
         break;
+      case 'clearHistory':
+        store.saveHistory([]);
+        this.postMessage({ type: 'history', data: [] });
+        this.notifyDataChanged();
+        break;
       case 'pickFile': {
         const uris = await vscode.window.showOpenDialog({ canSelectMany: false, openLabel: 'Select File' });
         if (uris && uris.length > 0) {

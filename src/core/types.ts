@@ -118,4 +118,5 @@ export type MessageToExtension =
   | { type: 'deleteCollection'; id: string }
   | { type: 'runPreRequestScript'; script: string; request: ApiRequest }
   | { type: 'runTestScript'; script: string; request: ApiRequest; response: ApiResponse }
-  | { type: 'pickFile'; purpose: string };
+  | { type: 'pickFile'; purpose: string }
+  | { type: 'clearHistory' };

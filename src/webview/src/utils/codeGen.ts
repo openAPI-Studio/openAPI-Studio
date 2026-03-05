@@ -19,25 +19,29 @@ export const LANGUAGES: { value: CodeLanguage; label: string }[] = [
   { value: 'swift', label: 'Swift - URLSession' },
 ];
 
-function buildUrl(req: ApiRequest): string {
-  return req.url;
+function interpolate(text: string, vars: Record<string, string>): string {
+  return text.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
 }
 
-function headers(req: ApiRequest): { key: string; value: string }[] {
-  return req.headers.filter(h => h.enabled && h.key);
+function buildUrl(req: ApiRequest, vars: Record<string, string>): string {
+  return interpolate(req.url, vars);
 }
 
-function bodyStr(req: ApiRequest): string | null {
+function headers(req: ApiRequest, vars: Record<string, string>): { key: string; value: string }[] {
+  return req.headers.filter(h => h.enabled && h.key).map(h => ({ key: interpolate(h.key, vars), value: interpolate(h.value, vars) }));
+}
+
+function bodyStr(req: ApiRequest, vars: Record<string, string>): string | null {
   const b = req.body;
-  if (b.type === 'none' || req.method === 'GET' || req.method === 'HEAD') return null;
-  if (b.type === 'json' || b.type === 'raw' || b.type === 'xml') return b.raw || '';
+  if (b.type === 'none') return null;
+  if (b.type === 'json' || b.type === 'raw' || b.type === 'xml') return interpolate(b.raw || '', vars);
   if (b.type === 'x-www-form-urlencoded') {
     const sp = new URLSearchParams();
-    (b.formData || []).filter(f => f.enabled).forEach(f => sp.append(f.key, f.value));
+    (b.formData || []).filter(f => f.enabled).forEach(f => sp.append(interpolate(f.key, vars), interpolate(f.value, vars)));
     return sp.toString();
   }
   if (b.type === 'graphql') {
-    return JSON.stringify({ query: b.graphql?.query || '', variables: JSON.parse(b.graphql?.variables || '{}') });
+    return JSON.stringify({ query: interpolate(b.graphql?.query || '', vars), variables: JSON.parse(b.graphql?.variables || '{}') });
   }
   return null;
 }
@@ -61,10 +65,10 @@ function sampleComment(response: ApiResponse | null, commentPrefix: string): str
   return lines.join('\n');
 }
 
-export function generateCode(req: ApiRequest, lang: CodeLanguage, response: ApiResponse | null): string {
-  const url = buildUrl(req);
-  const hdrs = headers(req);
-  const body = bodyStr(req);
+export function generateCode(req: ApiRequest, lang: CodeLanguage, response: ApiResponse | null, envVars: Record<string, string> = {}): string {
+  const url = buildUrl(req, envVars);
+  const hdrs = headers(req, envVars);
+  const body = bodyStr(req, envVars);
 
   switch (lang) {
     case 'curl': return genCurl(req, url, hdrs, body, response);
@@ -79,6 +83,7 @@ export function generateCode(req: ApiRequest, lang: CodeLanguage, response: ApiR
     case 'php': return genPhp(req, url, hdrs, body, response);
     case 'rust': return genRust(req, url, hdrs, body, response);
     case 'swift': return genSwift(req, url, hdrs, body, response);
+    default: return '// Unsupported language';
   }
 }
 

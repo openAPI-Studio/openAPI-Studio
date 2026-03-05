@@ -97,10 +97,10 @@ export default function App() {
             </button>
             {showSettings && (
               <div
-                className="absolute right-0 top-full mt-1 z-50 rounded p-2 text-[11px] min-w-[180px]"
+                className="absolute right-0 top-full mt-1 z-50 rounded text-[11px] min-w-[180px] py-1"
                 style={{ background: 'var(--vsc-input-bg)', border: '1px solid var(--vsc-border-visible)' }}
               >
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer px-2.5 py-1.5 hover:opacity-80">
                   <input
                     type="checkbox"
                     checked={sslVerification}
@@ -108,6 +108,20 @@ export default function App() {
                   />
                   SSL Verification
                 </label>
+                <div style={{ borderTop: '1px solid var(--vsc-border-visible)', margin: '2px 0' }} />
+                <button
+                  className="w-full text-left px-2.5 py-1.5 hover:opacity-80"
+                  onClick={() => {
+                    setShowSettings(false);
+                    useAppStore.getState().showConfirm({
+                      title: 'Clear History',
+                      message: 'Delete all request history? This cannot be undone.',
+                      onConfirm: () => postMessage({ type: 'clearHistory' }),
+                    });
+                  }}
+                >
+                  Clear All History
+                </button>
               </div>
             )}
           </div>
