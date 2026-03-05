@@ -7,6 +7,7 @@ import { Check, Save, ChevronDown } from 'lucide-react';
 import { KeyValueEditor } from './KeyValueEditor';
 import { BodyEditor } from './BodyEditor';
 import { AuthPanel } from './AuthPanel';
+import { STANDARD_HEADERS, HEADER_VALUES } from '../data/headers';
 import { ScriptEditor } from './ScriptEditor';
 
 const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
@@ -193,7 +194,7 @@ export function RequestBuilder() {
       {/* Tab content */}
       <div className="min-h-[100px]">
         {activeTab === 'params' && <KeyValueEditor items={params} onChange={setParams} keyPlaceholder="Parameter" valuePlaceholder="Value" />}
-        {activeTab === 'headers' && <KeyValueEditor items={headers} onChange={setHeaders} keyPlaceholder="Header" valuePlaceholder="Value" />}
+        {activeTab === 'headers' && <KeyValueEditor items={headers} onChange={setHeaders} keyPlaceholder="Header" valuePlaceholder="Value" keySuggestions={STANDARD_HEADERS} valueSuggestionsMap={HEADER_VALUES} />}
         {activeTab === 'body' && <BodyEditor />}
         {activeTab === 'auth' && <AuthPanel />}
         {activeTab === 'scripts' && <ScriptEditor />}

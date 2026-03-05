@@ -1,15 +1,18 @@
 import React from 'react';
 import { KeyValue } from '../types/messages';
 import { X } from 'lucide-react';
+import { AutocompleteInput } from './AutocompleteInput';
 
 interface Props {
   items: KeyValue[];
   onChange: (items: KeyValue[]) => void;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
+  keySuggestions?: string[];
+  valueSuggestionsMap?: Record<string, string[]>;
 }
 
-export function KeyValueEditor({ items, onChange, keyPlaceholder = 'Key', valuePlaceholder = 'Value' }: Props) {
+export function KeyValueEditor({ items, onChange, keyPlaceholder = 'Key', valuePlaceholder = 'Value', keySuggestions, valueSuggestionsMap }: Props) {
   const update = (index: number, field: keyof KeyValue, value: string | boolean) => {
     const next = items.map((item, i) => i === index ? { ...item, [field]: value } : item);
     onChange(next);
@@ -31,18 +34,36 @@ export function KeyValueEditor({ items, onChange, keyPlaceholder = 'Key', valueP
             onChange={(e) => update(i, 'enabled', e.target.checked)}
             className="shrink-0 accent-vsc-btn-bg"
           />
-          <input
-            className="input-field flex-1 text-[11px] py-1"
-            placeholder={keyPlaceholder}
-            value={item.key}
-            onChange={(e) => update(i, 'key', e.target.value)}
-          />
-          <input
-            className="input-field flex-1 text-[11px] py-1"
-            placeholder={valuePlaceholder}
-            value={item.value}
-            onChange={(e) => update(i, 'value', e.target.value)}
-          />
+          {keySuggestions ? (
+            <AutocompleteInput
+              value={item.key}
+              onChange={(v) => update(i, 'key', v)}
+              suggestions={keySuggestions}
+              placeholder={keyPlaceholder}
+            />
+          ) : (
+            <input
+              className="input-field flex-1 text-[11px] py-1"
+              placeholder={keyPlaceholder}
+              value={item.key}
+              onChange={(e) => update(i, 'key', e.target.value)}
+            />
+          )}
+          {valueSuggestionsMap ? (
+            <AutocompleteInput
+              value={item.value}
+              onChange={(v) => update(i, 'value', v)}
+              suggestions={valueSuggestionsMap[item.key] || []}
+              placeholder={valuePlaceholder}
+            />
+          ) : (
+            <input
+              className="input-field flex-1 text-[11px] py-1"
+              placeholder={valuePlaceholder}
+              value={item.value}
+              onChange={(e) => update(i, 'value', e.target.value)}
+            />
+          )}
           <button
             onClick={() => remove(i)}
             className="shrink-0 p-1 rounded opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-opacity"
