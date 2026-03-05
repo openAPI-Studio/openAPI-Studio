@@ -32,7 +32,7 @@ class RequestItem extends vscode.TreeItem {
     this.command = {
       command: 'openPost.openRequest',
       title: 'Open Request',
-      arguments: [request],
+      arguments: [request, collectionId],
     };
   }
 }

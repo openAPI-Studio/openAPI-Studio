@@ -44,7 +44,7 @@ export class OpenPostPanel {
     OpenPostPanel.currentPanel = new OpenPostPanel(panel, extensionUri);
   }
 
-  public sendToWebview(msg: MessageToWebview | { type: 'loadRequest'; data: ApiRequest }) {
+  public sendToWebview(msg: MessageToWebview | { type: 'loadRequest'; data: ApiRequest; collectionId: string | null }) {
     this.panel.webview.postMessage(msg);
   }
 

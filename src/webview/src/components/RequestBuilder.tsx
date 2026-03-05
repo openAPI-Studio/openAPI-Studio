@@ -18,7 +18,7 @@ const methodColors: Record<HttpMethod, string> = {
 
 export function RequestBuilder() {
   const {
-    method, url, params, headers, activeTab, name,
+    method, url, params, headers, activeTab, name, sourceRequestId, sourceCollectionId,
     setMethod, setUrl, setParams, setHeaders, setActiveTab, setBody, setAuth, setName, toApiRequest,
   } = useRequestStore();
   const setLoading = useAppStore((s) => s.setLoading);
@@ -29,6 +29,8 @@ export function RequestBuilder() {
   const [curlImported, setCurlImported] = React.useState(false);
   const [showSaveMenu, setShowSaveMenu] = React.useState(false);
   const [editingName, setEditingName] = React.useState(false);
+
+  const hasSource = !!(sourceRequestId && sourceCollectionId);
 
   const handleCurlOrUrl = (value: string) => {
     const parsed = parseCurl(value);
@@ -63,10 +65,18 @@ export function RequestBuilder() {
     postMessage({ type: 'sendRequest', data: toApiRequest() });
   };
 
-  const saveToCollection = (collectionId: string) => {
+  const saveUpdate = () => {
+    if (!sourceCollectionId) return;
     const req = toApiRequest();
+    postMessage({ type: 'saveRequest', data: { collectionId: sourceCollectionId, request: req } });
+    addToast({ type: 'success', message: 'Request updated' });
+  };
+
+  const saveCopyTo = (collectionId: string) => {
+    const req = toApiRequest();
+    req.id = Date.now().toString(); // new id for the copy
     postMessage({ type: 'saveRequest', data: { collectionId, request: req } });
-    addToast({ type: 'success', message: `Saved to collection` });
+    addToast({ type: 'success', message: 'Saved to collection' });
     setShowSaveMenu(false);
   };
 
@@ -126,14 +136,19 @@ export function RequestBuilder() {
           <span className="text-[9px] opacity-50">⌘↵</span>
         </button>
 
-        {/* Save dropdown */}
+        {/* Save buttons */}
+        {hasSource && (
+          <button onClick={saveUpdate} className="btn-primary shrink-0 flex items-center gap-1" title="Update this request in its collection">
+            <Save size={12} /> Save
+          </button>
+        )}
         <div className="relative">
           <button
             onClick={() => setShowSaveMenu(!showSaveMenu)}
             className="btn-secondary shrink-0 flex items-center gap-1"
-            title="Save to collection"
+            title="Save a copy to collection"
           >
-            <Save size={12} />
+            {hasSource ? 'Save As' : <Save size={12} />}
             <ChevronDown size={10} />
           </button>
           {showSaveMenu && (
@@ -150,7 +165,7 @@ export function RequestBuilder() {
                     <button
                       key={col.id}
                       className="w-full text-left px-3 py-1.5 text-[11px] transition-colors hover:bg-vsc-list-hover"
-                      onClick={() => saveToCollection(col.id)}
+                      onClick={() => saveCopyTo(col.id)}
                     >
                       {col.name}
                     </button>

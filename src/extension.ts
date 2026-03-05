@@ -28,11 +28,10 @@ export function activate(context: vscode.ExtensionContext) {
     }),
 
     // Open a specific request in the webview
-    vscode.commands.registerCommand('openPost.openRequest', (request: ApiRequest) => {
+    vscode.commands.registerCommand('openPost.openRequest', (request: ApiRequest, collectionId?: string) => {
       OpenPostPanel.show(context.extensionUri);
-      // Give the webview a moment to initialize, then send the request data
       setTimeout(() => {
-        OpenPostPanel.currentPanel?.sendToWebview({ type: 'loadRequest', data: request });
+        OpenPostPanel.currentPanel?.sendToWebview({ type: 'loadRequest', data: request, collectionId: collectionId || null });
       }, 300);
     }),
 

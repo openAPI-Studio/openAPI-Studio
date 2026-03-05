@@ -12,6 +12,8 @@ interface RequestState {
   preRequestScript: string;
   testScript: string;
   activeTab: 'params' | 'headers' | 'body' | 'auth' | 'scripts';
+  sourceRequestId: string | null;
+  sourceCollectionId: string | null;
   setMethod: (m: HttpMethod) => void;
   setUrl: (u: string) => void;
   setParams: (p: KeyValue[]) => void;
@@ -23,7 +25,7 @@ interface RequestState {
   setTestScript: (s: string) => void;
   setActiveTab: (t: RequestState['activeTab']) => void;
   toApiRequest: () => ApiRequest;
-  loadRequest: (r: ApiRequest) => void;
+  loadRequest: (r: ApiRequest, collectionId?: string | null) => void;
   reset: () => void;
 }
 
@@ -43,6 +45,8 @@ const defaultState = {
   preRequestScript: '',
   testScript: '',
   activeTab: 'headers' as const,
+  sourceRequestId: null as string | null,
+  sourceCollectionId: null as string | null,
 };
 
 export const useRequestStore = create<RequestState>((set, get) => ({
@@ -60,7 +64,7 @@ export const useRequestStore = create<RequestState>((set, get) => ({
   toApiRequest: () => {
     const s = get();
     return {
-      id: Date.now().toString(),
+      id: s.sourceRequestId || Date.now().toString(),
       name: s.name,
       method: s.method,
       url: s.url,
@@ -72,7 +76,7 @@ export const useRequestStore = create<RequestState>((set, get) => ({
       testScript: s.testScript || undefined,
     };
   },
-  loadRequest: (r) => set({
+  loadRequest: (r, collectionId) => set({
     method: r.method,
     url: r.url,
     params: r.params.length ? r.params : [],
@@ -82,6 +86,8 @@ export const useRequestStore = create<RequestState>((set, get) => ({
     name: r.name,
     preRequestScript: r.preRequestScript || '',
     testScript: r.testScript || '',
+    sourceRequestId: r.id || null,
+    sourceCollectionId: collectionId ?? null,
   }),
   reset: () => set({ ...defaultState, headers: [...defaultHeaders] }),
 }));

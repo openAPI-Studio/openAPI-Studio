@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { Zap } from 'lucide-react';
 import { RequestBuilder } from './components/RequestBuilder';
 import { ResponseViewer } from './components/ResponseViewer';
-import { Sidebar } from './components/Sidebar';
 import { EnvironmentSelector } from './components/EnvironmentSelector';
 import { ResizableSplit } from './components/ResizableSplit';
 import { ToastContainer } from './components/ToastContainer';
@@ -20,7 +19,6 @@ export default function App() {
   const setCollections = useAppStore((s) => s.setCollections);
   const setHistory = useAppStore((s) => s.setHistory);
   const addToast = useAppStore((s) => s.addToast);
-  const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
 
   useEffect(() => {
     onMessage((msg: unknown) => {
@@ -49,7 +47,10 @@ export default function App() {
           setHistory(m.data as ReturnType<typeof useAppStore.getState>['history']);
           break;
         case 'loadRequest':
-          useRequestStore.getState().loadRequest(m.data as ApiRequest);
+          useRequestStore.getState().loadRequest(
+            m.data as ApiRequest,
+            (m as { collectionId?: string | null }).collectionId,
+          );
           break;
       }
     });
@@ -60,34 +61,28 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <div className={`shrink-0 overflow-hidden transition-all duration-200 ${sidebarCollapsed ? 'w-10' : 'w-60'}`}>
-        <Sidebar />
+    <div className="flex flex-col h-screen overflow-hidden">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-3 py-1.5 shrink-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
+        <span className="text-xs font-semibold flex items-center gap-1.5 opacity-80">
+          <Zap size={12} /> Open Post
+        </span>
+        <EnvironmentSelector />
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ borderLeft: '1px solid var(--vsc-border-visible)' }}>
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-3 py-1.5 shrink-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
-          <span className="text-xs font-semibold flex items-center gap-1.5 opacity-80">
-            <Zap size={12} /> Open Post
-          </span>
-          <EnvironmentSelector />
-        </div>
-
-        {/* Main split: Request | Response */}
-        <ResizableSplit
-          top={
-            <div className="h-full p-3 overflow-auto">
-              <RequestBuilder />
-            </div>
-          }
-          bottom={
-            <div className="h-full p-3 overflow-auto">
-              <ResponseViewer />
-            </div>
-          }
-        />
-      </div>
+      {/* Main split: Request (top) | Response (bottom) */}
+      <ResizableSplit
+        top={
+          <div className="h-full p-3 overflow-auto">
+            <RequestBuilder />
+          </div>
+        }
+        bottom={
+          <div className="h-full p-3 overflow-auto">
+            <ResponseViewer />
+          </div>
+        }
+      />
 
       <ToastContainer />
       <ConfirmDialog />
