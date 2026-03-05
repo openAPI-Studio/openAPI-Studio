@@ -6,7 +6,7 @@
 :root {
   --vsc-bg: var(--vscode-editor-background, #1e1e1e);
   --vsc-fg: var(--vscode-foreground, #cccccc);
-  --vsc-sidebar-bg: var(--vscode-sideBar-background, var(--vsc-bg));
+  --vsc-sidebar-bg: var(--vscode-sideBar-background, var(--vscode-editorGroupHeader-tabsBackground, var(--vsc-bg)));
   --vsc-sidebar-fg: var(--vscode-sideBar-foreground, var(--vsc-fg));
   --vsc-input-bg: var(--vscode-input-background, #3c3c3c);
   --vsc-input-fg: var(--vscode-input-foreground, #cccccc);
@@ -19,7 +19,7 @@
   --vsc-btn-sec-fg: var(--vscode-button-secondaryForeground, #cccccc);
   --vsc-btn-sec-hover: var(--vscode-button-secondaryHoverBackground, rgba(255,255,255,0.2));
   --vsc-border: var(--vscode-panel-border, var(--vscode-sideBar-border, var(--vscode-contrastBorder, rgba(128,128,128,0.2))));
-  --vsc-border-visible: color-mix(in srgb, var(--vsc-fg) 15%, transparent);
+  --vsc-border-visible: rgba(128, 128, 128, 0.25);
   --vsc-tab-active: var(--vscode-tab-activeBackground, #1e1e1e);
   --vsc-tab-inactive: var(--vscode-tab-inactiveBackground, #2d2d2d);
   --vsc-list-hover: var(--vscode-list-hoverBackground, rgba(255,255,255,0.05));
@@ -56,6 +56,16 @@ body {
   color: var(--vsc-fg);
   background: var(--vsc-bg);
   overflow: hidden;
+}
+
+/* Light theme adjustments for standard VS Code */
+body.vscode-light {
+  --vsc-border-visible: rgba(0, 0, 0, 0.15);
+  --vsc-list-hover: rgba(0, 0, 0, 0.04);
+}
+
+body.vscode-high-contrast {
+  --vsc-border-visible: var(--vscode-contrastBorder, rgba(255, 255, 255, 0.6));
 }
 
 /* === Focus === */

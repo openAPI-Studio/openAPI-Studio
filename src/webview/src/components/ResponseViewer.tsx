@@ -1,10 +1,11 @@
 import React from 'react';
 import { useAppStore } from '../stores/appStore';
+import { useRequestStore } from '../stores/requestStore';
 import { JsonTreeView } from './JsonTreeView';
-import { X, Zap, Copy, Clock, ArrowDownToLine } from 'lucide-react';
+import { X, Zap, Copy, Clock, ArrowDownToLine, ChevronDown } from 'lucide-react';
 
 export function ResponseViewer() {
-  const response = useAppStore((s) => s.response);
+  const latestResponse = useAppStore((s) => s.response);
   const loading = useAppStore((s) => s.loading);
   const error = useAppStore((s) => s.error);
   const responseTab = useAppStore((s) => s.responseTab);
@@ -12,6 +13,21 @@ export function ResponseViewer() {
   const setResponseTab = useAppStore((s) => s.setResponseTab);
   const setBodyViewMode = useAppStore((s) => s.setBodyViewMode);
   const addToast = useAppStore((s) => s.addToast);
+  const history = useAppStore((s) => s.history);
+  const viewedHistoryId = useAppStore((s) => s.viewedHistoryId);
+  const setViewedHistoryId = useAppStore((s) => s.setViewedHistoryId);
+  const url = useRequestStore((s) => s.url);
+  const [showHistoryMenu, setShowHistoryMenu] = React.useState(false);
+
+  // Filter history for current URL
+  const urlHistory = React.useMemo(
+    () => [...history].filter((h) => h.request.url === url).sort((a, b) => b.timestamp - a.timestamp),
+    [history, url],
+  );
+
+  // Resolve which response to display
+  const viewedEntry = viewedHistoryId ? urlHistory.find((h) => h.id === viewedHistoryId) : null;
+  const response = viewedEntry ? viewedEntry.response : latestResponse;
 
   if (loading) {
     return (
@@ -86,6 +102,49 @@ export function ResponseViewer() {
         <button onClick={copyBody} className="btn-ghost text-[11px] flex items-center gap-1 ml-auto opacity-50 hover:opacity-100" title="Copy response body">
           <Copy size={11} /> Copy
         </button>
+        {urlHistory.length > 1 && (
+          <div className="relative">
+            <button
+              onClick={() => setShowHistoryMenu(!showHistoryMenu)}
+              className="btn-ghost text-[11px] flex items-center gap-1 opacity-50 hover:opacity-100"
+            >
+              <Clock size={10} />
+              {viewedEntry ? formatTime(viewedEntry.timestamp) : 'Latest'}
+              <ChevronDown size={9} />
+            </button>
+            {showHistoryMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowHistoryMenu(false)} />
+                <div
+                  className="absolute right-0 top-full mt-1 z-50 rounded shadow-vsc py-1 min-w-[180px] max-h-[200px] overflow-auto"
+                  style={{ background: 'var(--vsc-dropdown-bg)', border: '1px solid var(--vsc-dropdown-border)' }}
+                >
+                  {urlHistory.map((entry, i) => (
+                    <button
+                      key={entry.id}
+                      className={`w-full text-left px-3 py-1.5 text-[11px] flex items-center gap-2 transition-colors hover:bg-vsc-list-hover ${entry.id === (viewedHistoryId || urlHistory[0]?.id) ? 'opacity-100' : 'opacity-60'}`}
+                      onClick={() => {
+                        setViewedHistoryId(i === 0 && !viewedHistoryId ? null : entry.id === urlHistory[0]?.id ? null : entry.id);
+                        setShowHistoryMenu(false);
+                      }}
+                    >
+                      <span
+                        className="shrink-0 text-[10px] rounded px-1 font-medium"
+                        style={{
+                          color: '#000',
+                          background: entry.response.status < 300 ? 'var(--vsc-success)' : entry.response.status < 400 ? 'var(--vsc-warning)' : 'var(--vsc-error)',
+                        }}
+                      >{entry.response.status}</span>
+                      <span>{formatTime(entry.timestamp)}</span>
+                      <span className="opacity-40 ml-auto">{entry.response.time}ms</span>
+                      {i === 0 && <span className="text-[9px] opacity-40">(latest)</span>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -183,4 +242,9 @@ function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatTime(ts: number): string {
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }

@@ -16,6 +16,7 @@ export interface ConfirmDialog {
 
 interface AppState {
   response: ApiResponse | null;
+  viewedHistoryId: string | null;
   loading: boolean;
   error: string | null;
   environments: Environment[];
@@ -34,6 +35,7 @@ interface AppState {
   toasts: Toast[];
   confirmDialog: ConfirmDialog | null;
   setResponse: (r: ApiResponse | null) => void;
+  setViewedHistoryId: (id: string | null) => void;
   setLoading: (l: boolean) => void;
   setError: (e: string | null) => void;
   setEnvironments: (e: Environment[]) => void;
@@ -57,6 +59,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   response: null,
+  viewedHistoryId: null,
   loading: false,
   error: null,
   environments: [],
@@ -74,7 +77,8 @@ export const useAppStore = create<AppState>((set) => ({
   codePanelRatio: 0.5,
   toasts: [],
   confirmDialog: null,
-  setResponse: (response) => set({ response, error: null }),
+  setResponse: (response) => set({ response, error: null, viewedHistoryId: null }),
+  setViewedHistoryId: (viewedHistoryId) => set({ viewedHistoryId }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   setEnvironments: (environments) => set({ environments }),

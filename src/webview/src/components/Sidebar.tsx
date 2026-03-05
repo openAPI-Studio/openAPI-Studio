@@ -3,7 +3,7 @@ import { useAppStore } from '../stores/appStore';
 import { useRequestStore } from '../stores/requestStore';
 import { postMessage, Environment, KeyValue } from '../types/messages';
 import { KeyValueEditor } from './KeyValueEditor';
-import { X, PanelLeftClose, PanelLeftOpen, Search, FolderOpen, Globe, Clock } from 'lucide-react';
+import { X, PanelLeftClose, PanelLeftOpen, Search, FolderOpen, Globe, Clock, ChevronRight, ChevronDown } from 'lucide-react';
 
 const tabIcons = { collections: FolderOpen, environments: Globe, history: Clock } as const;
 
@@ -20,9 +20,20 @@ export function Sidebar() {
   const loadRequest = useRequestStore((s) => s.loadRequest);
   const addToast = useAppStore((s) => s.addToast);
   const showConfirm = useAppStore((s) => s.showConfirm);
+  const setResponse = useAppStore((s) => s.setResponse);
+  const setViewedHistoryId = useAppStore((s) => s.setViewedHistoryId);
 
   const [editingEnv, setEditingEnv] = React.useState<Environment | null>(null);
   const [newName, setNewName] = React.useState('');
+  const [collapsedNodes, setCollapsedNodes] = React.useState<Set<string>>(new Set());
+
+  const toggleNode = (id: string) => {
+    setCollapsedNodes((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const q = search.toLowerCase();
   const filteredCollections = collections.filter((c) => c.name.toLowerCase().includes(q) || c.requests.some((r) => r.name.toLowerCase().includes(q)));
@@ -66,7 +77,7 @@ export function Sidebar() {
       </div>
 
       {/* Tabs */}
-      <div className="flex shrink-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
+      <div className="flex shrink-0 overflow-hidden" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
         {(Object.keys(tabIcons) as Array<keyof typeof tabIcons>).map((tab) => {
           const Icon = tabIcons[tab];
           const active = sidebarTab === tab;
@@ -74,12 +85,12 @@ export function Sidebar() {
             <button
               key={tab}
               onClick={() => setSidebarTab(tab)}
-              className={`flex-1 flex items-center justify-center gap-1 px-1 py-1.5 text-[11px] capitalize transition-colors duration-150 border-b-2 ${active ? 'opacity-100' : 'opacity-50 hover:opacity-70'}`}
+              className={`flex-1 min-w-0 flex items-center justify-center gap-1 px-1 py-1.5 text-[11px] capitalize transition-colors duration-150 border-b-2 overflow-hidden ${active ? 'opacity-100' : 'opacity-50 hover:opacity-70'}`}
               style={{ borderColor: active ? 'var(--vsc-btn-bg)' : 'transparent', background: active ? 'var(--vsc-tab-active)' : 'transparent' }}
             >
-              <Icon size={11} />
-              <span className="hidden xl:inline">{tab}</span>
-              <span className="badge ml-0.5">{counts[tab]}</span>
+              <Icon size={11} className="shrink-0" />
+              <span className="truncate">{tab}</span>
+              <span className="badge ml-0.5 shrink-0">{counts[tab]}</span>
             </button>
           );
         })}
@@ -131,7 +142,11 @@ export function Sidebar() {
             {filteredCollections.map((col) => (
               <div key={col.id} className="flex flex-col gap-0.5">
                 <div className="list-item flex items-center justify-between group" style={{ background: 'var(--vsc-input-bg)' }}>
-                  <span className="text-[11px] font-medium truncate">{col.name}</span>
+                  <button className="flex items-center gap-1 flex-1 min-w-0" onClick={() => toggleNode(col.id)}>
+                    {collapsedNodes.has(col.id) ? <ChevronRight size={11} className="shrink-0 opacity-50" /> : <ChevronDown size={11} className="shrink-0 opacity-50" />}
+                    <span className="text-[11px] font-medium truncate">{col.name}</span>
+                    <span className="text-[9px] opacity-30 shrink-0">{col.requests.length}</span>
+                  </button>
                   <button
                     className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-0.5"
                     onClick={() => showConfirm({
@@ -144,8 +159,8 @@ export function Sidebar() {
                     })}
                   ><X size={11} /></button>
                 </div>
-                {col.requests.map((req) => (
-                  <button key={req.id} className="list-item text-left text-[11px] pl-4 truncate flex items-center gap-1.5" onClick={() => loadRequest(req)}>
+                {!collapsedNodes.has(col.id) && col.requests.map((req) => (
+                  <button key={req.id} className="list-item text-left text-[11px] pl-6 truncate flex items-center gap-1.5" onClick={() => loadRequest(req)}>
                     <span className="font-mono text-[10px] opacity-50 shrink-0 w-7">{req.method.substring(0, 3)}</span>
                     <span className="truncate">{req.name}</span>
                   </button>
@@ -212,7 +227,11 @@ export function Sidebar() {
               <button
                 key={entry.id}
                 className="list-item text-left text-[11px] flex items-center gap-1.5"
-                onClick={() => loadRequest(entry.request)}
+                onClick={() => {
+                  loadRequest(entry.request);
+                  setResponse(entry.response);
+                  setViewedHistoryId(entry.id);
+                }}
               >
                 <span className="font-mono text-[10px] opacity-50 shrink-0 w-7">{entry.request.method.substring(0, 3)}</span>
                 <span

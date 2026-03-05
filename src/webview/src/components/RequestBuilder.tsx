@@ -10,6 +10,7 @@ import { AuthPanel } from './AuthPanel';
 import { STANDARD_HEADERS, HEADER_VALUES } from '../data/headers';
 import { ScriptEditor } from './ScriptEditor';
 import { CodeExportPanel } from './CodeExportPanel';
+import { LANGUAGES, CodeLanguage } from '../utils/codeGen';
 
 const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
 
@@ -35,6 +36,7 @@ export function RequestBuilder() {
   const [curlImported, setCurlImported] = React.useState(false);
   const [showSaveMenu, setShowSaveMenu] = React.useState(false);
   const [editingName, setEditingName] = React.useState(false);
+  const [codeLang, setCodeLang] = React.useState<CodeLanguage>('curl');
 
   const hasSource = !!(sourceRequestId && sourceCollectionId);
 
@@ -242,12 +244,23 @@ export function RequestBuilder() {
             <div className="flex flex-col overflow-hidden" style={{ width: `${(1 - codePanelRatio) * 100}%` }}>
               <div className="flex items-center justify-between shrink-0 px-2 py-1" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
                 <span className="text-[10px] uppercase tracking-wider font-semibold opacity-50">Code</span>
-                <button onClick={() => setShowCodePanel(false)} className="btn-ghost p-0.5" title="Close code panel">
-                  <X size={12} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <select
+                    value={codeLang}
+                    onChange={(e) => setCodeLang(e.target.value as CodeLanguage)}
+                    className="select-field text-[10px] py-0 px-1"
+                  >
+                    {LANGUAGES.map((l) => (
+                      <option key={l.value} value={l.value}>{l.label}</option>
+                    ))}
+                  </select>
+                  <button onClick={() => setShowCodePanel(false)} className="btn-ghost p-0.5" title="Close code panel">
+                    <X size={12} />
+                  </button>
+                </div>
               </div>
               <div style={{ flex: '1 1 0%', overflow: 'auto', minHeight: 0, padding: '0.5rem' }}>
-                <CodeExportPanel />
+                <CodeExportPanel lang={codeLang} />
               </div>
             </div>
           </>

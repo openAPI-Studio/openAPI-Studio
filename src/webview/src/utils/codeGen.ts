@@ -20,12 +20,7 @@ export const LANGUAGES: { value: CodeLanguage; label: string }[] = [
 ];
 
 function buildUrl(req: ApiRequest): string {
-  const params = req.params.filter(p => p.enabled && p.key);
-  if (params.length === 0) return req.url;
-  const sp = new URLSearchParams();
-  params.forEach(p => sp.append(p.key, p.value));
-  const sep = req.url.includes('?') ? '&' : '?';
-  return `${req.url}${sep}${sp.toString()}`;
+  return req.url;
 }
 
 function headers(req: ApiRequest): { key: string; value: string }[] {
@@ -45,6 +40,14 @@ function bodyStr(req: ApiRequest): string | null {
     return JSON.stringify({ query: b.graphql?.query || '', variables: JSON.parse(b.graphql?.variables || '{}') });
   }
   return null;
+}
+
+function isFormData(req: ApiRequest): boolean {
+  return req.body.type === 'form-data';
+}
+
+function isBinary(req: ApiRequest): boolean {
+  return req.body.type === 'binary';
 }
 
 function sampleComment(response: ApiResponse | null, commentPrefix: string): string {
@@ -79,17 +82,49 @@ export function generateCode(req: ApiRequest, lang: CodeLanguage, response: ApiR
   }
 }
 
+function formDataItems(req: ApiRequest): { key: string; value: string; isFile: boolean }[] {
+  const files = (req.body.formDataFiles || []).filter(f => f.enabled && f.key).map(f => ({
+    key: f.key, value: f.fieldType === 'file' ? (f.fileName || f.value) : f.value, isFile: f.fieldType === 'file',
+  }));
+  if (files.length) return files;
+  return (req.body.formData || []).filter(f => f.enabled && f.key).map(f => ({
+    key: f.key, value: f.value, isFile: false,
+  }));
+}
+
 type H = { key: string; value: string }[];
 
 function genCurl(req: ApiRequest, url: string, hdrs: H, body: string | null, res: ApiResponse | null): string {
   const parts = [`curl -X ${req.method} '${url}'`];
   hdrs.forEach(h => parts.push(`  -H '${h.key}: ${h.value}'`));
-  if (body) parts.push(`  -d '${body.replace(/'/g, "'\\''")}'`);
+  if (isFormData(req)) {
+    formDataItems(req).forEach(f => {
+      parts.push(f.isFile ? `  -F '${f.key}=@${f.value || '/path/to/file'}'` : `  -F '${f.key}=${f.value}'`);
+    });
+  } else if (isBinary(req)) {
+    parts.push(`  --data-binary '@${req.body.binaryName || '/path/to/file'}'`);
+  } else if (body) {
+    parts.push(`  -d '${body.replace(/'/g, "'\\''")}'`);
+  }
   return parts.join(' \\\n') + sampleComment(res, '#');
 }
 
 function genJsFetch(req: ApiRequest, url: string, hdrs: H, body: string | null, res: ApiResponse | null): string {
   const opts: string[] = [`  method: '${req.method}'`];
+  if (isFormData(req)) {
+    const fdLines = ['const formData = new FormData();'];
+    formDataItems(req).forEach(f => {
+      fdLines.push(f.isFile ? `formData.append('${f.key}', fileInput.files[0]); // file field` : `formData.append('${f.key}', '${f.value}');`);
+    });
+    if (hdrs.length) opts.push(`  headers: {\n${hdrs.map(h => `    '${h.key}': '${h.value}'`).join(',\n')}\n  }`);
+    opts.push('  body: formData');
+    return `${fdLines.join('\n')}\n\nconst response = await fetch('${url}', {\n${opts.join(',\n')}\n});\n\nconst data = await response.json();\nconsole.log(data);${sampleComment(res, '//')}`;
+  }
+  if (isBinary(req)) {
+    if (hdrs.length) opts.push(`  headers: {\n${hdrs.map(h => `    '${h.key}': '${h.value}'`).join(',\n')}\n  }`);
+    opts.push('  body: fileBuffer // File or Blob');
+    return `const response = await fetch('${url}', {\n${opts.join(',\n')}\n});\n\nconst data = await response.json();\nconsole.log(data);${sampleComment(res, '//')}`;
+  }
   if (hdrs.length) {
     opts.push(`  headers: {\n${hdrs.map(h => `    '${h.key}': '${h.value}'`).join(',\n')}\n  }`);
   }
@@ -109,7 +144,21 @@ function genPythonRequests(req: ApiRequest, url: string, hdrs: H, body: string |
   if (hdrs.length) lines.push(`headers = {\n${hdrs.map(h => `    '${h.key}': '${h.value}'`).join(',\n')}\n}`);
   const args = [`'${url}'`];
   if (hdrs.length) args.push('headers=headers');
-  if (body) args.push(req.body.type === 'json' ? `json=${body}` : `data='${body}'`);
+  if (isFormData(req)) {
+    const items = formDataItems(req);
+    const fileItems = items.filter(f => f.isFile);
+    const dataItems = items.filter(f => !f.isFile);
+    if (dataItems.length) args.push(`data={${dataItems.map(f => `'${f.key}': '${f.value}'`).join(', ')}}`);
+    if (fileItems.length) {
+      lines.push(`files = {${fileItems.map(f => `'${f.key}': open('${f.value || '/path/to/file'}', 'rb')`).join(', ')}}`);
+      args.push('files=files');
+    }
+  } else if (isBinary(req)) {
+    lines.push(`data = open('${req.body.binaryName || '/path/to/file'}', 'rb').read()`);
+    args.push('data=data');
+  } else if (body) {
+    args.push(req.body.type === 'json' ? `json=${body}` : `data='${body}'`);
+  }
   lines.push(`response = requests.${req.method.toLowerCase()}(${args.join(', ')})`);
   lines.push('print(response.json())');
   return lines.join('\n') + sampleComment(res, '#');

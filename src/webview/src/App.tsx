@@ -76,7 +76,7 @@ export default function App() {
 
       {/* Main: Sidebar + Split */}
       <div className="flex flex-1 overflow-hidden">
-        <div className="shrink-0 h-full overflow-hidden" style={{ width: sidebarCollapsed ? 'auto' : `${sidebarWidth}px` }}>
+        <div className="shrink-0 h-full overflow-hidden" style={{ width: sidebarCollapsed ? 'auto' : `${sidebarWidth}px`, borderRight: sidebarCollapsed ? '1px solid var(--vsc-border-visible)' : 'none' }}>
           <Sidebar />
         </div>
         {!sidebarCollapsed && (
