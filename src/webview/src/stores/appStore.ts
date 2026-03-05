@@ -32,6 +32,7 @@ interface AppState {
   splitRatio: number;
   showCodePanel: boolean;
   codePanelRatio: number;
+  sslVerification: boolean;
   toasts: Toast[];
   confirmDialog: ConfirmDialog | null;
   setResponse: (r: ApiResponse | null) => void;
@@ -51,6 +52,7 @@ interface AppState {
   setSplitRatio: (v: number) => void;
   setShowCodePanel: (v: boolean) => void;
   setCodePanelRatio: (v: number) => void;
+  setSslVerification: (v: boolean) => void;
   addToast: (t: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
   showConfirm: (d: ConfirmDialog) => void;
@@ -75,6 +77,7 @@ export const useAppStore = create<AppState>((set) => ({
   splitRatio: 0.5,
   showCodePanel: false,
   codePanelRatio: 0.5,
+  sslVerification: true,
   toasts: [],
   confirmDialog: null,
   setResponse: (response) => set({ response, error: null, viewedHistoryId: null }),
@@ -94,6 +97,7 @@ export const useAppStore = create<AppState>((set) => ({
   setSplitRatio: (splitRatio) => set({ splitRatio }),
   setShowCodePanel: (showCodePanel) => set({ showCodePanel }),
   setCodePanelRatio: (codePanelRatio) => set({ codePanelRatio }),
+  setSslVerification: (sslVerification) => set({ sslVerification }),
   addToast: (t) => {
     const id = Date.now().toString() + Math.random().toString(36).slice(2);
     set((s) => ({ toasts: [...s.toasts, { ...t, id }] }));

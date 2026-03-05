@@ -106,7 +106,7 @@ export type MessageToWebview =
   | { type: 'filePicked'; purpose: string; filePath: string; fileName: string };
 
 export type MessageToExtension =
-  | { type: 'sendRequest'; data: ApiRequest }
+  | { type: 'sendRequest'; data: ApiRequest; sslVerification?: boolean }
   | { type: 'saveRequest'; data: { collectionId: string; folderId?: string; request: ApiRequest } }
   | { type: 'loadCollections' }
   | { type: 'loadEnvironments' }

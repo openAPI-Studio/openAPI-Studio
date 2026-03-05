@@ -1,11 +1,13 @@
 import { ApiRequest, ApiResponse, KeyValue } from './types';
 import { interpolateVariables } from './interpolation';
+import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
 
 export async function executeRequest(
   request: ApiRequest,
-  variables: Record<string, string>
+  variables: Record<string, string>,
+  sslVerification: boolean = true
 ): Promise<ApiResponse> {
   const activeParams = request.params.filter(p => p.enabled && p.key.trim() !== '');
   const url = buildUrl(
@@ -28,6 +30,10 @@ export async function executeRequest(
   }
 
   const start = performance.now();
+  const prevTls = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+  if (!sslVerification) {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  }
   try {
     const res = await fetch(url, {
       method: request.method,
@@ -59,6 +65,11 @@ export async function executeRequest(
       time,
       size: 0,
     };
+  } finally {
+    if (!sslVerification) {
+      if (prevTls === undefined) { delete process.env.NODE_TLS_REJECT_UNAUTHORIZED; }
+      else { process.env.NODE_TLS_REJECT_UNAUTHORIZED = prevTls; }
+    }
   }
 }
 

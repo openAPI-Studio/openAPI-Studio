@@ -90,7 +90,7 @@ export class OpenPostPanel {
             }
           }
 
-          const response = await executeRequest(request, envVars);
+          const response = await executeRequest(request, envVars, msg.sslVerification !== false);
 
           // Test script
           if (request.testScript) {

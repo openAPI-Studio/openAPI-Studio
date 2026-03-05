@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Zap } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Zap, Settings } from 'lucide-react';
 import { RequestBuilder } from './components/RequestBuilder';
 import { ResponseViewer } from './components/ResponseViewer';
 import { Sidebar } from './components/Sidebar';
@@ -23,6 +23,20 @@ export default function App() {
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
   const sidebarWidth = useAppStore((s) => s.sidebarWidth);
   const setSidebarWidth = useAppStore((s) => s.setSidebarWidth);
+  const sslVerification = useAppStore((s) => s.sslVerification);
+  const setSslVerification = useAppStore((s) => s.setSslVerification);
+  const [showSettings, setShowSettings] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (showSettings && settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setShowSettings(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showSettings]);
 
   useEffect(() => {
     onMessage((msg: unknown) => {
@@ -71,7 +85,33 @@ export default function App() {
         <span className="text-xs font-semibold flex items-center gap-1.5 opacity-80">
           <Zap size={12} /> Open Post
         </span>
-        <EnvironmentSelector />
+        <div className="flex items-center gap-2">
+          <EnvironmentSelector />
+          <div className="relative" ref={settingsRef}>
+            <button
+              className="opacity-50 hover:opacity-100 transition-opacity"
+              onClick={() => setShowSettings(!showSettings)}
+              title="Settings"
+            >
+              <Settings size={13} />
+            </button>
+            {showSettings && (
+              <div
+                className="absolute right-0 top-full mt-1 z-50 rounded p-2 text-[11px] min-w-[180px]"
+                style={{ background: 'var(--vsc-input-bg)', border: '1px solid var(--vsc-border-visible)' }}
+              >
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sslVerification}
+                    onChange={(e) => setSslVerification(e.target.checked)}
+                  />
+                  SSL Verification
+                </label>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Main: Sidebar + Split */}

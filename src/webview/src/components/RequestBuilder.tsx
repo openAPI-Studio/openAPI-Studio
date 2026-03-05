@@ -70,7 +70,7 @@ export function RequestBuilder() {
     setLoading(true);
     setResponse(null);
     setError(null);
-    postMessage({ type: 'sendRequest', data: toApiRequest() });
+    postMessage({ type: 'sendRequest', data: toApiRequest(), sslVerification: useAppStore.getState().sslVerification });
   };
 
   const saveUpdate = () => {
