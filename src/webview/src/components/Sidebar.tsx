@@ -1,9 +1,9 @@
 import React from 'react';
 import { useAppStore } from '../stores/appStore';
-import { useRequestStore } from '../stores/requestStore';
-import { postMessage, Environment, KeyValue } from '../types/messages';
+import { useTabStore } from '../stores/tabStore';
+import { postMessage, Environment, KeyValue, CollectionFolder, ApiRequest } from '../types/messages';
 import { KeyValueEditor } from './KeyValueEditor';
-import { Trash2, PanelLeftClose, PanelLeftOpen, Search, FolderOpen, Globe, Clock, ChevronRight, ChevronDown, FileText, Pencil } from 'lucide-react';
+import { Trash2, PanelLeftClose, PanelLeftOpen, Search, FolderOpen, FolderPlus, FilePlus, Globe, Clock, ChevronRight, ChevronDown, FileText, Pencil, Folder } from 'lucide-react';
 
 const tabIcons = { collections: FolderOpen, environments: Globe, history: Clock } as const;
 
@@ -21,15 +21,21 @@ export function Sidebar() {
   const collections = useAppStore((s) => s.collections);
   const environments = useAppStore((s) => s.environments);
   const history = useAppStore((s) => s.history);
-  const loadRequest = useRequestStore((s) => s.loadRequest);
+  const openRequest = useTabStore((s) => s.openRequest);
+
+  /** Open request in new tab, loading last response from history if available */
+  const openReq = (r: ApiRequest, collectionId?: string, folderPath?: string[]) => {
+    const lastHistory = history.slice().reverse().find((h) => h.request.url === r.url && h.request.method === r.method);
+    openRequest(r, collectionId, folderPath, lastHistory?.response ?? null);
+  };
   const addToast = useAppStore((s) => s.addToast);
   const showConfirm = useAppStore((s) => s.showConfirm);
-  const setResponse = useAppStore((s) => s.setResponse);
-  const setViewedHistoryId = useAppStore((s) => s.setViewedHistoryId);
 
   const [editingEnv, setEditingEnv] = React.useState<Environment | null>(null);
   const [newName, setNewName] = React.useState('');
   const [collapsedNodes, setCollapsedNodes] = React.useState<Set<string>>(new Set());
+  const [creatingIn, setCreatingIn] = React.useState<{ colId: string; path: string[]; type: 'folder' | 'request' } | null>(null);
+  const [createName, setCreateName] = React.useState('');
 
   const toggleNode = (id: string) => {
     setCollapsedNodes((prev) => {
@@ -149,63 +155,19 @@ export function Sidebar() {
             </div>
             {filteredCollections.length === 0 && <p className="text-[11px] opacity-30 py-4 text-center">No collections</p>}
             {filteredCollections.map((col) => (
-              <div key={col.id}>
-                {/* Collection folder row */}
-                <div
-                  className="flex items-center px-2 py-[6px] cursor-pointer transition-colors hover:bg-[var(--vsc-list-hover)]"
-                  style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}
-                >
-                  <button className="flex items-center gap-1.5 flex-1 min-w-0" onClick={() => toggleNode(col.id)}>
-                    {collapsedNodes.has(col.id)
-                      ? <ChevronRight size={12} className="shrink-0 opacity-50" />
-                      : <ChevronDown size={12} className="shrink-0 opacity-50" />}
-                    <FolderOpen size={13} className="shrink-0" style={{ color: 'var(--vsc-warning)' }} />
-                    <span className="text-[12px] font-medium truncate">{col.name}</span>
-                    <span className="text-[10px] opacity-30 shrink-0 ml-0.5">{col.requests.length}</span>
-                  </button>
-                  <button
-                    className="shrink-0 p-0.5 rounded transition-colors opacity-40 hover:opacity-100"
-                    style={{ color: 'var(--vsc-error)' }}
-                    title={`Delete "${col.name}"`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      confirmDelete('Delete Collection', `Delete "${col.name}" and all its requests? This cannot be undone.`, () => {
-                        postMessage({ type: 'deleteCollection', id: col.id });
-                        addToast({ type: 'info', message: `Collection "${col.name}" deleted` });
-                      });
-                    }}
-                  ><Trash2 size={12} /></button>
-                </div>
-                {/* Requests under collection */}
-                {!collapsedNodes.has(col.id) && col.requests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="flex items-center gap-2 w-full pl-8 pr-2 py-[5px] transition-colors hover:bg-[var(--vsc-list-hover)]"
-                    style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}
-                  >
-                    <button
-                      className="flex items-center gap-2 flex-1 min-w-0 text-left text-[11px]"
-                      onClick={() => loadRequest(req)}
-                    >
-                      <FileText size={12} className="shrink-0 opacity-30" />
-                      <span
-                        className="font-mono text-[10px] font-bold shrink-0 uppercase"
-                        style={{ color: methodColor[req.method] || 'var(--vsc-fg)' }}
-                      >{req.method}</span>
-                      <span className="truncate opacity-80">{req.name || req.url}</span>
-                    </button>
-                    <button
-                      className="shrink-0 p-0.5 rounded transition-colors opacity-40 hover:opacity-100"
-                      style={{ color: 'var(--vsc-error)' }}
-                      title={`Delete "${req.name || req.url}"`}
-                      onClick={() => confirmDelete('Delete Request', `Delete "${req.name || req.url}"? This cannot be undone.`, () => {
-                        postMessage({ type: 'deleteRequest', collectionId: col.id, requestId: req.id });
-                        addToast({ type: 'info', message: 'Request deleted' });
-                      })}
-                    ><Trash2 size={11} /></button>
-                  </div>
-                ))}
-              </div>
+              <CollectionNode
+                key={col.id}
+                col={col}
+                collapsedNodes={collapsedNodes}
+                toggleNode={toggleNode}
+                confirmDelete={confirmDelete}
+                loadRequest={(r, folderPath) => openReq(r, col.id, folderPath)}
+                addToast={addToast}
+                creatingIn={creatingIn}
+                setCreatingIn={setCreatingIn}
+                createName={createName}
+                setCreateName={setCreateName}
+              />
             ))}
           </div>
         )}
@@ -282,9 +244,7 @@ export function Sidebar() {
                 className="flex items-center gap-2 w-full text-left px-2 py-[6px] text-[11px] transition-colors hover:bg-[var(--vsc-list-hover)]"
                 style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}
                 onClick={() => {
-                  loadRequest(entry.request);
-                  setResponse(entry.response);
-                  setViewedHistoryId(entry.id);
+                  openRequest(entry.request, undefined, undefined, entry.response);
                 }}
               >
                 <span
@@ -304,6 +264,263 @@ export function Sidebar() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ── Recursive tree components ── */
+
+function countItems(folders: CollectionFolder[], requests: ApiRequest[]): number {
+  return requests.length + folders.reduce((n, f) => n + countItems(f.folders, f.requests), 0);
+}
+
+interface CollectionNodeProps {
+  col: { id: string; name: string; folders: CollectionFolder[]; requests: ApiRequest[] };
+  collapsedNodes: Set<string>;
+  toggleNode: (id: string) => void;
+  confirmDelete: (title: string, message: string, onConfirm: () => void) => void;
+  loadRequest: (r: ApiRequest, folderPath?: string[]) => void;
+  addToast: (t: { type: 'success' | 'error' | 'info'; message: string }) => void;
+  creatingIn: { colId: string; path: string[]; type: 'folder' | 'request' } | null;
+  setCreatingIn: (v: { colId: string; path: string[]; type: 'folder' | 'request' } | null) => void;
+  createName: string;
+  setCreateName: (v: string) => void;
+}
+
+function CollectionNode({ col, collapsedNodes, toggleNode, confirmDelete, loadRequest, addToast, creatingIn, setCreatingIn, createName, setCreateName }: CollectionNodeProps) {
+  const open = !collapsedNodes.has(col.id);
+  const total = countItems(col.folders, col.requests);
+  const pathKey = JSON.stringify([]);
+
+  const submitCreate = () => {
+    if (!creatingIn || !createName.trim()) return;
+    if (creatingIn.type === 'folder') {
+      postMessage({ type: 'createFolder', collectionId: col.id, name: createName.trim(), parentPath: creatingIn.path });
+    } else {
+      const req: any = { id: Date.now().toString(), name: createName.trim(), method: 'GET', url: '', params: [], headers: [], body: { type: 'none' }, auth: { type: 'none' } };
+      postMessage({ type: 'saveRequest', data: { collectionId: col.id, folderPath: creatingIn.path, request: req } });
+    }
+    setCreateName('');
+    setCreatingIn(null);
+  };
+
+  return (
+    <div>
+      <div
+        className="flex items-center px-2 py-[6px] cursor-pointer transition-colors hover:bg-[var(--vsc-list-hover)]"
+        style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}
+      >
+        <button className="flex items-center gap-1.5 flex-1 min-w-0" onClick={() => toggleNode(col.id)}>
+          {open ? <ChevronDown size={12} className="shrink-0 opacity-50" /> : <ChevronRight size={12} className="shrink-0 opacity-50" />}
+          <FolderOpen size={13} className="shrink-0" style={{ color: 'var(--vsc-warning)' }} />
+          <span className="text-[12px] font-medium truncate">{col.name}</span>
+          <span className="text-[10px] opacity-30 shrink-0 ml-0.5">{total}</span>
+        </button>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            className="p-0.5 rounded transition-colors opacity-30 hover:opacity-80"
+            title="New folder"
+            onClick={(e) => { e.stopPropagation(); setCreatingIn({ colId: col.id, path: [], type: 'folder' }); setCreateName(''); if (collapsedNodes.has(col.id)) toggleNode(col.id); }}
+          ><FolderPlus size={12} /></button>
+          <button
+            className="p-0.5 rounded transition-colors opacity-30 hover:opacity-80"
+            title="New request"
+            onClick={(e) => { e.stopPropagation(); setCreatingIn({ colId: col.id, path: [], type: 'request' }); setCreateName(''); if (collapsedNodes.has(col.id)) toggleNode(col.id); }}
+          ><FilePlus size={12} /></button>
+          <button
+            className="p-0.5 rounded transition-colors opacity-40 hover:opacity-100"
+            style={{ color: 'var(--vsc-error)' }}
+            title={`Delete "${col.name}"`}
+            onClick={(e) => {
+              e.stopPropagation();
+              confirmDelete('Delete Collection', `Delete "${col.name}" and all contents? This cannot be undone.`, () => {
+                postMessage({ type: 'deleteCollection', id: col.id });
+                addToast({ type: 'info', message: `Collection "${col.name}" deleted` });
+              });
+            }}
+          ><Trash2 size={12} /></button>
+        </div>
+      </div>
+      {open && (
+        <div>
+          {/* Inline create input */}
+          {creatingIn && creatingIn.colId === col.id && JSON.stringify(creatingIn.path) === pathKey && (
+            <InlineCreate type={creatingIn.type} depth={1} value={createName} onChange={setCreateName} onSubmit={submitCreate} onCancel={() => setCreatingIn(null)} />
+          )}
+          {col.folders.map((folder) => (
+            <FolderNodeInner
+              key={folder.id}
+              folder={folder}
+              colId={col.id}
+              path={[folder.id]}
+              depth={1}
+              collapsedNodes={collapsedNodes}
+              toggleNode={toggleNode}
+              confirmDelete={confirmDelete}
+              loadRequest={loadRequest}
+              addToast={addToast}
+              creatingIn={creatingIn}
+              setCreatingIn={setCreatingIn}
+              createName={createName}
+              setCreateName={setCreateName}
+            />
+          ))}
+          {col.requests.map((req) => (
+            <RequestRow key={req.id} req={req} colId={col.id} folderPath={[]} depth={1} confirmDelete={confirmDelete} loadRequest={loadRequest} addToast={addToast} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface FolderNodeProps {
+  folder: CollectionFolder;
+  colId: string;
+  path: string[];
+  depth: number;
+  collapsedNodes: Set<string>;
+  toggleNode: (id: string) => void;
+  confirmDelete: (title: string, message: string, onConfirm: () => void) => void;
+  loadRequest: (r: ApiRequest, folderPath?: string[]) => void;
+  addToast: (t: { type: 'success' | 'error' | 'info'; message: string }) => void;
+  creatingIn: { colId: string; path: string[]; type: 'folder' | 'request' } | null;
+  setCreatingIn: (v: { colId: string; path: string[]; type: 'folder' | 'request' } | null) => void;
+  createName: string;
+  setCreateName: (v: string) => void;
+}
+
+function FolderNodeInner({ folder, colId, path, depth, collapsedNodes, toggleNode, confirmDelete, loadRequest, addToast, creatingIn, setCreatingIn, createName, setCreateName }: FolderNodeProps) {
+  const nodeKey = `${colId}:${folder.id}`;
+  const open = !collapsedNodes.has(nodeKey);
+  const total = countItems(folder.folders, folder.requests);
+  const pl = 8 + depth * 16;
+  const pathKey = JSON.stringify(path);
+
+  const submitCreate = () => {
+    if (!creatingIn || !createName.trim()) return;
+    if (creatingIn.type === 'folder') {
+      postMessage({ type: 'createFolder', collectionId: colId, name: createName.trim(), parentPath: creatingIn.path });
+    } else {
+      const req: any = { id: Date.now().toString(), name: createName.trim(), method: 'GET', url: '', params: [], headers: [], body: { type: 'none' }, auth: { type: 'none' } };
+      postMessage({ type: 'saveRequest', data: { collectionId: colId, folderPath: creatingIn.path, request: req } });
+    }
+    setCreateName('');
+    setCreatingIn(null);
+  };
+
+  return (
+    <div>
+      <div
+        className="flex items-center pr-2 py-[5px] cursor-pointer transition-colors hover:bg-[var(--vsc-list-hover)]"
+        style={{ paddingLeft: pl, borderBottom: '1px solid var(--vsc-border-visible)' }}
+      >
+        <button className="flex items-center gap-1.5 flex-1 min-w-0" onClick={() => toggleNode(nodeKey)}>
+          {open ? <ChevronDown size={11} className="shrink-0 opacity-50" /> : <ChevronRight size={11} className="shrink-0 opacity-50" />}
+          <Folder size={12} className="shrink-0" style={{ color: 'var(--vsc-info)' }} />
+          <span className="text-[11px] font-medium truncate">{folder.name}</span>
+          <span className="text-[9px] opacity-30 shrink-0 ml-0.5">{total}</span>
+        </button>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            className="p-0.5 rounded transition-colors opacity-30 hover:opacity-80"
+            title="New folder"
+            onClick={(e) => { e.stopPropagation(); setCreatingIn({ colId, path, type: 'folder' }); setCreateName(''); if (collapsedNodes.has(nodeKey)) toggleNode(nodeKey); }}
+          ><FolderPlus size={11} /></button>
+          <button
+            className="p-0.5 rounded transition-colors opacity-30 hover:opacity-80"
+            title="New request"
+            onClick={(e) => { e.stopPropagation(); setCreatingIn({ colId, path, type: 'request' }); setCreateName(''); if (collapsedNodes.has(nodeKey)) toggleNode(nodeKey); }}
+          ><FilePlus size={11} /></button>
+          <button
+            className="p-0.5 rounded transition-colors opacity-40 hover:opacity-100"
+            style={{ color: 'var(--vsc-error)' }}
+            title={`Delete "${folder.name}"`}
+            onClick={(e) => {
+              e.stopPropagation();
+              confirmDelete('Delete Folder', `Delete "${folder.name}" and all contents?`, () => {
+                postMessage({ type: 'deleteFolder', collectionId: colId, folderPath: path });
+                addToast({ type: 'info', message: `Folder "${folder.name}" deleted` });
+              });
+            }}
+          ><Trash2 size={11} /></button>
+        </div>
+      </div>
+      {open && (
+        <div>
+          {creatingIn && creatingIn.colId === colId && JSON.stringify(creatingIn.path) === pathKey && (
+            <InlineCreate type={creatingIn.type} depth={depth + 1} value={createName} onChange={setCreateName} onSubmit={submitCreate} onCancel={() => setCreatingIn(null)} />
+          )}
+          {folder.folders.map((sub) => (
+            <FolderNodeInner
+              key={sub.id}
+              folder={sub}
+              colId={colId}
+              path={[...path, sub.id]}
+              depth={depth + 1}
+              collapsedNodes={collapsedNodes}
+              toggleNode={toggleNode}
+              confirmDelete={confirmDelete}
+              loadRequest={loadRequest}
+              addToast={addToast}
+              creatingIn={creatingIn}
+              setCreatingIn={setCreatingIn}
+              createName={createName}
+              setCreateName={setCreateName}
+            />
+          ))}
+          {folder.requests.map((req) => (
+            <RequestRow key={req.id} req={req} colId={colId} folderPath={path} depth={depth + 1} confirmDelete={confirmDelete} loadRequest={loadRequest} addToast={addToast} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RequestRow({ req, colId, folderPath, depth, confirmDelete, loadRequest, addToast }: {
+  req: ApiRequest; colId: string; folderPath: string[]; depth: number;
+  confirmDelete: (t: string, m: string, fn: () => void) => void; loadRequest: (r: ApiRequest, folderPath?: string[]) => void; addToast: (t: { type: 'success' | 'error' | 'info'; message: string }) => void;
+}) {
+  const pl = 8 + depth * 16;
+  return (
+    <div
+      className="flex items-center gap-2 pr-2 py-[5px] transition-colors hover:bg-[var(--vsc-list-hover)]"
+      style={{ paddingLeft: pl, borderBottom: '1px solid var(--vsc-border-visible)' }}
+    >
+      <button className="flex items-center gap-2 flex-1 min-w-0 text-left text-[11px]" onClick={() => loadRequest(req, folderPath.length ? folderPath : undefined)}>
+        <FileText size={12} className="shrink-0 opacity-30" />
+        <span className="font-mono text-[10px] font-bold shrink-0 uppercase" style={{ color: methodColor[req.method] || 'var(--vsc-fg)' }}>{req.method}</span>
+        <span className="truncate opacity-80">{req.name || req.url || 'Untitled'}</span>
+      </button>
+      <button
+        className="shrink-0 p-0.5 rounded transition-colors opacity-40 hover:opacity-100"
+        style={{ color: 'var(--vsc-error)' }}
+        title="Delete request"
+        onClick={() => confirmDelete('Delete Request', `Delete "${req.name || req.url}"?`, () => {
+          postMessage({ type: 'deleteRequest', collectionId: colId, requestId: req.id, folderPath: folderPath.length ? folderPath : undefined });
+          addToast({ type: 'info', message: 'Request deleted' });
+        })}
+      ><Trash2 size={11} /></button>
+    </div>
+  );
+}
+
+function InlineCreate({ type, depth, value, onChange, onSubmit, onCancel }: {
+  type: 'folder' | 'request'; depth: number; value: string; onChange: (v: string) => void; onSubmit: () => void; onCancel: () => void;
+}) {
+  const pl = 8 + depth * 16;
+  return (
+    <div className="flex items-center gap-1.5 pr-2 py-1" style={{ paddingLeft: pl, borderBottom: '1px solid var(--vsc-border-visible)' }}>
+      {type === 'folder' ? <Folder size={12} style={{ color: 'var(--vsc-info)' }} className="shrink-0" /> : <FileText size={12} className="shrink-0 opacity-40" />}
+      <input
+        className="input-field flex-1 text-[11px] py-0.5"
+        placeholder={type === 'folder' ? 'Folder name...' : 'Request name...'}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); }}
+        autoFocus
+      />
     </div>
   );
 }

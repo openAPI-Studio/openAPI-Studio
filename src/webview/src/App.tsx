@@ -7,6 +7,7 @@ import { EnvironmentSelector } from './components/EnvironmentSelector';
 import { ResizableSplit } from './components/ResizableSplit';
 import { ToastContainer } from './components/ToastContainer';
 import { ConfirmDialog } from './components/ConfirmDialog';
+import { TabBar } from './components/TabBar';
 import { useAppStore } from './stores/appStore';
 import { useRequestStore } from './stores/requestStore';
 import { onMessage, postMessage, ApiRequest, CookieEntry } from './types/messages';
@@ -185,6 +186,7 @@ export default function App() {
           />
         )}
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          <TabBar />
           <ResizableSplit
             top={
               <div className="h-full p-3 flex flex-col overflow-hidden">

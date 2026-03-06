@@ -152,7 +152,7 @@ export type MessageToWebview =
 
 export type MessageToExtension =
   | { type: 'sendRequest'; data: ApiRequest; sslVerification?: boolean }
-  | { type: 'saveRequest'; data: { collectionId: string; folderId?: string; request: ApiRequest } }
+  | { type: 'saveRequest'; data: { collectionId: string; folderId?: string; folderPath?: string[]; request: ApiRequest } }
   | { type: 'loadCollections' }
   | { type: 'loadEnvironments' }
   | { type: 'saveEnvironment'; data: Environment }
@@ -161,7 +161,9 @@ export type MessageToExtension =
   | { type: 'loadHistory' }
   | { type: 'createCollection'; name: string }
   | { type: 'deleteCollection'; id: string }
-  | { type: 'deleteRequest'; collectionId: string; requestId: string }
+  | { type: 'deleteRequest'; collectionId: string; requestId: string; folderPath?: string[] }
+  | { type: 'createFolder'; collectionId: string; name: string; parentPath?: string[] }
+  | { type: 'deleteFolder'; collectionId: string; folderPath: string[] }
   | { type: 'runPreRequestScript'; script: string; request: ApiRequest }
   | { type: 'runTestScript'; script: string; request: ApiRequest; response: ApiResponse }
   | { type: 'pickFile'; purpose: string }

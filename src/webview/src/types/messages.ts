@@ -102,10 +102,17 @@ export interface Environment {
   variables: KeyValue[];
 }
 
+export interface CollectionFolder {
+  id: string;
+  name: string;
+  requests: ApiRequest[];
+  folders: CollectionFolder[];
+}
+
 export interface Collection {
   id: string;
   name: string;
-  folders: { id: string; name: string; requests: ApiRequest[]; folders: never[] }[];
+  folders: CollectionFolder[];
   requests: ApiRequest[];
   variables: KeyValue[];
 }

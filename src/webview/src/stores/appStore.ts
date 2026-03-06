@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { ApiResponse, Environment, Collection, HistoryEntry, CookieEntry } from '../types/messages';
+import { useTabStore } from './tabStore';
 
 export interface Toast {
   id: string;
@@ -86,10 +87,22 @@ export const useAppStore = create<AppState>((set) => ({
   allCookies: [],
   toasts: [],
   confirmDialog: null,
-  setResponse: (response) => set({ response, error: null, viewedHistoryId: null }),
+  setResponse: (response) => {
+    const { activeTabId, updateTab } = useTabStore.getState();
+    updateTab(activeTabId, { response, error: null });
+    set({ response, error: null, viewedHistoryId: null });
+  },
   setViewedHistoryId: (viewedHistoryId) => set({ viewedHistoryId }),
-  setLoading: (loading) => set({ loading }),
-  setError: (error) => set({ error }),
+  setLoading: (loading) => {
+    const { activeTabId, updateTab } = useTabStore.getState();
+    updateTab(activeTabId, { loading });
+    set({ loading });
+  },
+  setError: (error) => {
+    const { activeTabId, updateTab } = useTabStore.getState();
+    updateTab(activeTabId, { error });
+    set({ error });
+  },
   setEnvironments: (environments) => set({ environments }),
   setActiveEnvironmentId: (activeEnvironmentId) => set({ activeEnvironmentId }),
   setCollections: (collections) => set({ collections }),
@@ -114,3 +127,15 @@ export const useAppStore = create<AppState>((set) => ({
   showConfirm: (confirmDialog) => set({ confirmDialog }),
   hideConfirm: () => set({ confirmDialog: null }),
 }));
+
+// Sync response/loading/error from active tab when tab changes
+useTabStore.subscribe((state, prev) => {
+  if (state.activeTabId !== prev.activeTabId) {
+    const tab = state.getActiveTab();
+    useAppStore.setState({
+      response: tab.response,
+      loading: tab.loading,
+      error: tab.error,
+    });
+  }
+});

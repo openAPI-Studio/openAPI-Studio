@@ -1,13 +1,25 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { MessageToExtension, MessageToWebview, Collection, HistoryEntry, ApiRequest, CookieEntry } from '../core/types';
+import { MessageToExtension, MessageToWebview, Collection, CollectionFolder, HistoryEntry, ApiRequest, CookieEntry } from '../core/types';
 import { executeRequest } from '../core/httpClient';
 import { applyAuth } from '../auth/authHandler';
 import { runScript } from '../scripting/sandbox';
 import { parseSetCookieHeader, getMatchingCookies, mergeCookies, serializeCookieHeader } from '../core/cookieJar';
 import { evaluateTests, extractVariables } from '../core/testRunner';
 import * as store from '../storage/fileStore';
+
+/** Resolve a folder path like ['folderId1', 'folderId2'] to the nested folder node */
+function resolveFolder(col: Collection, folderPath?: string[]): { folders: CollectionFolder[]; requests: ApiRequest[] } | null {
+  if (!folderPath || folderPath.length === 0) return col;
+  let current: { folders: CollectionFolder[]; requests: ApiRequest[] } = col;
+  for (const fid of folderPath) {
+    const found = current.folders.find(f => f.id === fid);
+    if (!found) return null;
+    current = found;
+  }
+  return current;
+}
 
 export class OpenPostPanel {
   public static currentPanel: OpenPostPanel | undefined;
@@ -193,10 +205,43 @@ export class OpenPostPanel {
         const collections = store.loadCollections();
         const col = collections.find(c => c.id === msg.collectionId);
         if (col) {
-          col.requests = col.requests.filter(r => r.id !== msg.requestId);
-          store.saveCollections(collections);
-          this.postMessage({ type: 'collections', data: collections });
-          this.notifyDataChanged();
+          const parent = resolveFolder(col, msg.folderPath);
+          if (parent) {
+            parent.requests = parent.requests.filter(r => r.id !== msg.requestId);
+            store.saveCollections(collections);
+            this.postMessage({ type: 'collections', data: collections });
+            this.notifyDataChanged();
+          }
+        }
+        break;
+      }
+      case 'createFolder': {
+        const collections = store.loadCollections();
+        const col = collections.find(c => c.id === msg.collectionId);
+        if (col) {
+          const parent = resolveFolder(col, msg.parentPath);
+          if (parent) {
+            parent.folders.push({ id: Date.now().toString(), name: msg.name, requests: [], folders: [] });
+            store.saveCollections(collections);
+            this.postMessage({ type: 'collections', data: collections });
+            this.notifyDataChanged();
+          }
+        }
+        break;
+      }
+      case 'deleteFolder': {
+        const collections = store.loadCollections();
+        const col = collections.find(c => c.id === msg.collectionId);
+        if (col && msg.folderPath.length > 0) {
+          const parentPath = msg.folderPath.slice(0, -1);
+          const folderId = msg.folderPath[msg.folderPath.length - 1];
+          const parent = resolveFolder(col, parentPath);
+          if (parent) {
+            parent.folders = parent.folders.filter(f => f.id !== folderId);
+            store.saveCollections(collections);
+            this.postMessage({ type: 'collections', data: collections });
+            this.notifyDataChanged();
+          }
         }
         break;
       }
@@ -204,10 +249,13 @@ export class OpenPostPanel {
         const collections = store.loadCollections();
         const col = collections.find(c => c.id === msg.data.collectionId);
         if (col) {
-          const existing = col.requests.findIndex(r => r.id === msg.data.request.id);
-          if (existing >= 0) { col.requests[existing] = msg.data.request; }
-          else { col.requests.push(msg.data.request); }
-          store.saveCollections(collections);
+          const parent = resolveFolder(col, msg.data.folderPath);
+          if (parent) {
+            const existing = parent.requests.findIndex(r => r.id === msg.data.request.id);
+            if (existing >= 0) { parent.requests[existing] = msg.data.request; }
+            else { parent.requests.push(msg.data.request); }
+            store.saveCollections(collections);
+          }
         }
         this.postMessage({ type: 'collections', data: collections });
         this.notifyDataChanged();

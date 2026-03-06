@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { HttpMethod, KeyValue, RequestBody, AuthConfig, ApiRequest, TestRule, SetVariable } from '../types/messages';
+import { useTabStore } from './tabStore';
 
 function paramsFromUrl(url: string): KeyValue[] {
   try {
@@ -22,21 +23,39 @@ function urlWithParams(url: string, params: KeyValue[]): string {
   return `${base}?${sp.toString()}`;
 }
 
-interface RequestState {
-  method: HttpMethod;
-  url: string;
-  params: KeyValue[];
-  headers: KeyValue[];
-  body: RequestBody;
-  auth: AuthConfig;
-  name: string;
-  preRequestScript: string;
-  testScript: string;
-  testRules: TestRule[];
-  setVariables: SetVariable[];
-  activeTab: 'params' | 'headers' | 'body' | 'auth' | 'tests' | 'scripts';
-  sourceRequestId: string | null;
-  sourceCollectionId: string | null;
+const defaultHeaders: KeyValue[] = [
+  { key: 'Accept', value: 'application/json', enabled: true },
+  { key: 'Content-Type', value: 'application/json', enabled: true },
+];
+
+/** Helper: update the active tab in tabStore */
+function patchActive(patch: Record<string, unknown>) {
+  const { activeTabId, updateTab } = useTabStore.getState();
+  updateTab(activeTabId, patch);
+}
+
+/** Helper: read from active tab */
+function active() {
+  return useTabStore.getState().getActiveTab();
+}
+
+export interface RequestState {
+  // All getters read from active tab via get()
+  readonly method: HttpMethod;
+  readonly url: string;
+  readonly params: KeyValue[];
+  readonly headers: KeyValue[];
+  readonly body: RequestBody;
+  readonly auth: AuthConfig;
+  readonly name: string;
+  readonly preRequestScript: string;
+  readonly testScript: string;
+  readonly testRules: TestRule[];
+  readonly setVariables: SetVariable[];
+  readonly activeTab: 'params' | 'headers' | 'body' | 'auth' | 'tests' | 'scripts';
+  readonly sourceRequestId: string | null;
+  readonly sourceCollectionId: string | null;
+  readonly sourceFolderPath: string[] | null;
   setMethod: (m: HttpMethod) => void;
   setUrl: (u: string) => void;
   setUrlRaw: (u: string) => void;
@@ -51,87 +70,137 @@ interface RequestState {
   setSetVariables: (v: SetVariable[]) => void;
   setActiveTab: (t: RequestState['activeTab']) => void;
   toApiRequest: () => ApiRequest;
-  loadRequest: (r: ApiRequest, collectionId?: string | null) => void;
+  loadRequest: (r: ApiRequest, collectionId?: string | null, folderPath?: string[] | null) => void;
   reset: () => void;
+  /** Sync from tab store — called by subscription */
+  _sync: () => void;
 }
 
-const defaultHeaders: KeyValue[] = [
-  { key: 'Accept', value: 'application/json', enabled: true },
-  { key: 'Content-Type', value: 'application/json', enabled: true },
-];
+export const useRequestStore = create<RequestState>((set, get) => {
+  // Subscribe to tab store changes and sync
+  const syncFromTab = () => {
+    const tab = active();
+    set({
+      method: tab.method,
+      url: tab.url,
+      params: tab.params,
+      headers: tab.headers,
+      body: tab.body,
+      auth: tab.auth,
+      name: tab.name,
+      preRequestScript: tab.preRequestScript,
+      testScript: tab.testScript,
+      testRules: tab.testRules,
+      setVariables: tab.setVariables,
+      activeTab: tab.activeTab,
+      sourceRequestId: tab.sourceRequestId,
+      sourceCollectionId: tab.sourceCollectionId,
+      sourceFolderPath: tab.sourceFolderPath,
+    });
+  };
 
-const defaultState = {
-  method: 'GET' as HttpMethod,
-  url: '',
-  params: [] as KeyValue[],
-  headers: [...defaultHeaders],
-  body: { type: 'none' as const },
-  auth: { type: 'none' as const },
-  name: 'New Request',
-  preRequestScript: '',
-  testScript: '',
-  testRules: [] as TestRule[],
-  setVariables: [] as SetVariable[],
-  activeTab: 'headers' as const,
-  sourceRequestId: null as string | null,
-  sourceCollectionId: null as string | null,
-};
+  // Subscribe to tab store
+  useTabStore.subscribe(syncFromTab);
 
-export const useRequestStore = create<RequestState>((set, get) => ({
-  ...defaultState,
-  setMethod: (method) => set({ method }),
-  // setUrl: parses query params from URL and syncs to params list
-  setUrl: (url) => {
-    const extracted = paramsFromUrl(url);
-    set({ url, params: extracted.length > 0 ? extracted : get().params.length > 0 ? get().params : [] });
-  },
-  // setUrlRaw: sets URL without touching params (used by curl import / loadRequest)
-  setUrlRaw: (url) => set({ url }),
-  // setParams: rebuilds URL query string from params
-  setParams: (params) => {
-    const url = urlWithParams(get().url, params);
-    set({ params, url });
-  },
-  setHeaders: (headers) => set({ headers }),
-  setBody: (body) => set({ body }),
-  setAuth: (auth) => set({ auth }),
-  setName: (name) => set({ name }),
-  setPreRequestScript: (preRequestScript) => set({ preRequestScript }),
-  setTestScript: (testScript) => set({ testScript }),
-  setTestRules: (testRules) => set({ testRules }),
-  setSetVariables: (setVariables) => set({ setVariables }),
-  setActiveTab: (activeTab) => set({ activeTab }),
-  toApiRequest: () => {
-    const s = get();
-    return {
-      id: s.sourceRequestId || Date.now().toString(),
-      name: s.name,
-      method: s.method,
-      url: s.url,
-      params: s.params.filter(p => p.key.trim() !== ''),
-      headers: s.headers.filter(h => h.key.trim() !== ''),
-      body: s.body,
-      auth: s.auth,
-      preRequestScript: s.preRequestScript || undefined,
-      testScript: s.testScript || undefined,
-      testRules: s.testRules.length ? s.testRules : undefined,
-      setVariables: s.setVariables.length ? s.setVariables : undefined,
-    };
-  },
-  loadRequest: (r, collectionId) => set({
-    method: r.method,
-    url: r.url,
-    params: r.params.length ? r.params : paramsFromUrl(r.url),
-    headers: r.headers.length ? r.headers : [...defaultHeaders],
-    body: r.body,
-    auth: r.auth,
-    name: r.name,
-    preRequestScript: r.preRequestScript || '',
-    testScript: r.testScript || '',
-    testRules: r.testRules || [],
-    setVariables: r.setVariables || [],
-    sourceRequestId: r.id || null,
-    sourceCollectionId: collectionId ?? null,
-  }),
-  reset: () => set({ ...defaultState, headers: [...defaultHeaders] }),
-}));
+  const tab = active();
+  return {
+    method: tab.method,
+    url: tab.url,
+    params: tab.params,
+    headers: tab.headers,
+    body: tab.body,
+    auth: tab.auth,
+    name: tab.name,
+    preRequestScript: tab.preRequestScript,
+    testScript: tab.testScript,
+    testRules: tab.testRules,
+    setVariables: tab.setVariables,
+    activeTab: tab.activeTab,
+    sourceRequestId: tab.sourceRequestId,
+    sourceCollectionId: tab.sourceCollectionId,
+    sourceFolderPath: tab.sourceFolderPath,
+
+    setMethod: (method) => { patchActive({ method }); set({ method }); },
+    setUrl: (url) => {
+      const extracted = paramsFromUrl(url);
+      const params = extracted.length > 0 ? extracted : active().params;
+      patchActive({ url, params });
+      set({ url, params });
+    },
+    setUrlRaw: (url) => { patchActive({ url }); set({ url }); },
+    setParams: (params) => {
+      const url = urlWithParams(active().url, params);
+      patchActive({ params, url });
+      set({ params, url });
+    },
+    setHeaders: (headers) => { patchActive({ headers }); set({ headers }); },
+    setBody: (body) => { patchActive({ body }); set({ body }); },
+    setAuth: (auth) => { patchActive({ auth }); set({ auth }); },
+    setName: (name) => { patchActive({ name }); set({ name }); },
+    setPreRequestScript: (preRequestScript) => { patchActive({ preRequestScript }); set({ preRequestScript }); },
+    setTestScript: (testScript) => { patchActive({ testScript }); set({ testScript }); },
+    setTestRules: (testRules) => { patchActive({ testRules }); set({ testRules }); },
+    setSetVariables: (setVariables) => { patchActive({ setVariables }); set({ setVariables }); },
+    setActiveTab: (activeTab) => { patchActive({ activeTab }); set({ activeTab }); },
+    toApiRequest: () => {
+      const s = active();
+      return {
+        id: s.sourceRequestId || Date.now().toString(),
+        name: s.name,
+        method: s.method,
+        url: s.url,
+        params: s.params.filter(p => p.key.trim() !== ''),
+        headers: s.headers.filter(h => h.key.trim() !== ''),
+        body: s.body,
+        auth: s.auth,
+        preRequestScript: s.preRequestScript || undefined,
+        testScript: s.testScript || undefined,
+        testRules: s.testRules.length ? s.testRules : undefined,
+        setVariables: s.setVariables.length ? s.setVariables : undefined,
+      };
+    },
+    loadRequest: (r, collectionId, folderPath) => {
+      // This is called for non-sidebar loads (e.g. history click in response viewer)
+      const patch = {
+        method: r.method,
+        url: r.url,
+        params: r.params.length ? r.params : paramsFromUrl(r.url),
+        headers: r.headers.length ? r.headers : [...defaultHeaders],
+        body: r.body,
+        auth: r.auth,
+        name: r.name,
+        preRequestScript: r.preRequestScript || '',
+        testScript: r.testScript || '',
+        testRules: r.testRules || [],
+        setVariables: r.setVariables || [],
+        sourceRequestId: r.id || null,
+        sourceCollectionId: collectionId ?? null,
+        sourceFolderPath: folderPath ?? null,
+      };
+      patchActive(patch);
+      set(patch);
+    },
+    reset: () => {
+      const patch = {
+        method: 'GET' as HttpMethod,
+        url: '',
+        params: [] as KeyValue[],
+        headers: [...defaultHeaders],
+        body: { type: 'none' as const },
+        auth: { type: 'none' as const },
+        name: 'New Request',
+        preRequestScript: '',
+        testScript: '',
+        testRules: [] as TestRule[],
+        setVariables: [] as SetVariable[],
+        activeTab: 'headers' as const,
+        sourceRequestId: null,
+        sourceCollectionId: null,
+        sourceFolderPath: null,
+      };
+      patchActive(patch);
+      set(patch);
+    },
+    _sync: syncFromTab,
+  };
+});
