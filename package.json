@@ -2,8 +2,9 @@
   "name": "open-post",
   "displayName": "Open Post",
   "description": "API Testing. Inside Your Code.",
-  "version": "0.8.17",
+  "version": "0.8.19",
   "publisher": "open-post",
+  "icon": "chat.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/open-post/open-post"
@@ -15,6 +16,20 @@
     "Testing",
     "Other"
   ],
+  "keywords": [
+    "api",
+    "rest",
+    "http",
+    "postman",
+    "graphql",
+    "api-client",
+    "request",
+    "curl"
+  ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "main": "./dist/extension.js",
   "activationEvents": [],
   "contributes": {

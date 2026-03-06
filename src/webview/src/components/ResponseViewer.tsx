@@ -85,24 +85,14 @@ export function ResponseViewer() {
   return (
     <div className="flex flex-col gap-2.5">
       {/* Status bar */}
-      <div className="flex items-center gap-2.5 flex-wrap">
-        <span
-          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold"
-          style={{ background: statusColor, color: '#000' }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#000', opacity: 0.25 }} />
-          {response.status} {response.statusText}
-        </span>
-        <span className="flex items-center gap-1 text-[11px] opacity-40">
-          <Clock size={10} /> {response.time} ms
-        </span>
-        <span className="flex items-center gap-1 text-[11px] opacity-40">
-          <ArrowDownToLine size={10} /> {formatSize(response.size)}
-        </span>
-        <button onClick={copyBody} className="btn-ghost text-[11px] flex items-center gap-1 ml-auto opacity-50 hover:opacity-100" title="Copy response body">
-          <Copy size={11} /> Copy
-        </button>
-        {urlHistory.length > 1 && (
+      <div className="flex flex-col gap-1.5 rounded-md px-3 py-2" style={{ background: 'var(--vsc-input-bg)' }}>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] uppercase tracking-wider font-semibold opacity-40">Response</span>
+          <div className="flex items-center gap-1.5">
+            <button onClick={copyBody} className="btn-ghost text-[11px] flex items-center gap-1 opacity-50 hover:opacity-100" title="Copy response body">
+              <Copy size={11} /> Copy
+            </button>
+            {urlHistory.length > 1 && (
           <div className="relative">
             <button
               onClick={() => setShowHistoryMenu(!showHistoryMenu)}
@@ -145,6 +135,23 @@ export function ResponseViewer() {
             )}
           </div>
         )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3 mt-1">
+          <span
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold"
+            style={{ background: statusColor, color: '#000' }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#000', opacity: 0.25 }} />
+            {response.status} {response.statusText}
+          </span>
+          <span className="flex items-center gap-1 text-[11px] opacity-50">
+            <Clock size={10} /> <span className="opacity-70">Time</span> <span className="font-medium">{response.time} ms</span>
+          </span>
+          <span className="flex items-center gap-1 text-[11px] opacity-50">
+            <ArrowDownToLine size={10} /> <span className="opacity-70">Size</span> <span className="font-medium">{formatSize(response.size)}</span>
+          </span>
+        </div>
       </div>
 
       {/* Tabs */}
