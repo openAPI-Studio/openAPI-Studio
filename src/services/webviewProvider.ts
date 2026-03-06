@@ -327,6 +327,50 @@ export class OpenPostPanel {
       case 'setCookiesEnabled':
         store.saveCookiesEnabled(msg.enabled);
         break;
+      case 'exportCollection': {
+        const { toPostmanFormat } = require('./collectionTree');
+        const collections = store.loadCollections();
+        const col = collections.find((c: any) => c.id === msg.collectionId);
+        if (!col) break;
+        const format = await vscode.window.showQuickPick(
+          [{ label: 'Open Post JSON', value: 'openpost' }, { label: 'Postman v2.1', value: 'postman' }],
+          { placeHolder: 'Export format' }
+        );
+        if (!format) break;
+        const defaultName = col.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+        const uri = await vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(`${defaultName}.json`), filters: { 'JSON': ['json'] } });
+        if (!uri) break;
+        const data = format.value === 'postman' ? JSON.stringify(toPostmanFormat(col), null, 2) : JSON.stringify(col, null, 2);
+        fs.writeFileSync(uri.fsPath, data, 'utf-8');
+        vscode.window.showInformationMessage(`Exported "${col.name}"`);
+        break;
+      }
+      case 'importCollection': {
+        const { fromPostmanFormat } = require('./collectionTree');
+        const uris = await vscode.window.showOpenDialog({ canSelectMany: false, filters: { 'JSON': ['json'] }, openLabel: 'Import' });
+        if (!uris || uris.length === 0) break;
+        try {
+          const raw = fs.readFileSync(uris[0].fsPath, 'utf-8');
+          const json = JSON.parse(raw);
+          const collections = store.loadCollections();
+          if (json.info && json.info.schema && json.item) {
+            collections.push(fromPostmanFormat(json));
+          } else if (json.id && json.name && json.requests !== undefined) {
+            json.id = Date.now().toString();
+            collections.push(json);
+          } else {
+            vscode.window.showErrorMessage('Unrecognized format. Supports Open Post JSON and Postman v2.1.');
+            break;
+          }
+          store.saveCollections(collections);
+          this.postMessage({ type: 'collections', data: collections });
+          this.notifyDataChanged();
+          vscode.window.showInformationMessage(`Collection imported`);
+        } catch (err: unknown) {
+          vscode.window.showErrorMessage(`Import failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+        break;
+      }
     }
   }
 

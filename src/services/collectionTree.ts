@@ -5,12 +5,19 @@ import { Collection, ApiRequest, KeyValue, AuthConfig } from '../core/types';
 
 type TreeItem = CollectionItem | FolderItem | RequestItem;
 
+const METHOD_ICONS: Record<string, string> = {
+  GET: 'arrow-down', POST: 'arrow-up', PUT: 'arrow-swap', PATCH: 'edit',
+  DELETE: 'close', HEAD: 'eye', OPTIONS: 'settings-gear',
+};
+
 class CollectionItem extends vscode.TreeItem {
   constructor(public readonly collection: Collection) {
+    const count = countRequests(collection);
     const hasChildren = collection.requests.length > 0 || collection.folders.length > 0;
     super(collection.name, hasChildren ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed);
     this.contextValue = 'collection';
     this.iconPath = new vscode.ThemeIcon('folder-library');
+    this.description = `${count} request${count !== 1 ? 's' : ''}`;
   }
 }
 
@@ -20,15 +27,16 @@ class FolderItem extends vscode.TreeItem {
     super(folder.name, hasChildren ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed);
     this.contextValue = 'folder';
     this.iconPath = new vscode.ThemeIcon('folder');
+    this.description = `${folder.requests.length}`;
   }
 }
 
 class RequestItem extends vscode.TreeItem {
   constructor(public readonly request: ApiRequest, public readonly collectionId: string) {
-    super(request.name, vscode.TreeItemCollapsibleState.None);
+    super(request.name || 'Untitled', vscode.TreeItemCollapsibleState.None);
     this.contextValue = 'request';
-    this.description = `${request.method} ${request.url}`;
-    this.iconPath = new vscode.ThemeIcon('symbol-event');
+    this.description = `${request.method} ${request.url ? request.url.replace(/^https?:\/\//, '') : ''}`;
+    this.iconPath = new vscode.ThemeIcon(METHOD_ICONS[request.method] || 'symbol-event');
     this.command = {
       command: 'openPost.openRequest',
       title: 'Open Request',
@@ -112,8 +120,7 @@ export class CollectionTreeProvider implements vscode.TreeDataProvider<TreeItem>
     col.requests.push(request);
     saveCollections(collections);
     this.refresh();
-    // Also open it in the webview
-    vscode.commands.executeCommand('openPost.openRequest', request);
+    vscode.commands.executeCommand('openPost.openRequest', request, col.id);
   }
 
   async exportCollection(item: CollectionItem) {
@@ -157,12 +164,10 @@ export class CollectionTreeProvider implements vscode.TreeDataProvider<TreeItem>
       const json = JSON.parse(raw);
       const collections = loadCollections();
 
-      // Detect Postman format
       if (json.info && json.info.schema && json.item) {
         const imported = fromPostmanFormat(json);
         collections.push(imported);
       } else if (json.id && json.name && json.requests !== undefined) {
-        // Open Post format — assign new ID to avoid conflicts
         json.id = Date.now().toString();
         collections.push(json as Collection);
       } else {
@@ -183,23 +188,15 @@ export class CollectionTreeProvider implements vscode.TreeDataProvider<TreeItem>
 
 // --- Helpers ---
 
-function countRequests(col: Collection): number {
+function countRequests(col: { requests: unknown[]; folders: { requests: unknown[]; folders: any[] }[] }): number {
   let count = col.requests.length;
-  const countInFolders = (folders: Collection['folders']): number => {
-    let c = 0;
-    for (const f of folders) {
-      c += f.requests.length;
-      c += countInFolders(f.folders);
-    }
-    return c;
-  };
-  count += countInFolders(col.folders);
+  for (const f of col.folders) { count += countRequests(f); }
   return count;
 }
 
 // --- Postman v2.1 conversion ---
 
-function toPostmanFormat(col: Collection): object {
+export function toPostmanFormat(col: Collection): object {
   return {
     info: {
       name: col.name,
@@ -221,7 +218,7 @@ function toPostmanFormat(col: Collection): object {
   };
 }
 
-function fromPostmanFormat(json: { info: { name: string }; item: PostmanItem[]; variable?: { key: string; value: string }[] }): Collection {
+export function fromPostmanFormat(json: { info: { name: string }; item: PostmanItem[]; variable?: { key: string; value: string }[] }): Collection {
   const { folders, requests } = parsePostmanItems(json.item || []);
   const variables = (json.variable || []).map(v => ({ key: v.key, value: v.value, enabled: true }));
   return {
@@ -242,7 +239,6 @@ function parsePostmanItems(items: PostmanItem[]): { folders: Collection['folders
     const hasChildren = item.item && Array.isArray(item.item) && item.item.length > 0;
 
     if (hasChildren) {
-      // It's a folder — recurse into children
       const nested = parsePostmanItems(item.item!);
       folders.push({
         id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
@@ -251,7 +247,6 @@ function parsePostmanItems(items: PostmanItem[]): { folders: Collection['folders
         folders: nested.folders,
       });
     } else if (hasRequest) {
-      // It's a request
       requests.push(parsePostmanRequest(item));
     }
   }
@@ -275,7 +270,6 @@ function parsePostmanRequest(item: PostmanItem): ApiRequest {
 
   const method = (req.method || 'GET').toUpperCase();
 
-  // Resolve URL — handle string, {raw}, or {host[], path[]} formats
   let url = '';
   if (typeof req.url === 'string') {
     url = req.url;
@@ -283,7 +277,6 @@ function parsePostmanRequest(item: PostmanItem): ApiRequest {
     if (req.url.raw) {
       url = req.url.raw;
     } else {
-      // Build from host + path arrays
       const host = Array.isArray(req.url.host) ? req.url.host.join('.') : (req.url.host || '');
       const pathParts = Array.isArray(req.url.path) ? req.url.path.join('/') : (req.url.path || '');
       const protocol = req.url.protocol || 'https';
@@ -295,7 +288,6 @@ function parsePostmanRequest(item: PostmanItem): ApiRequest {
     key: h.key || '', value: h.value || '', enabled: !h.disabled,
   }));
 
-  // Parse query params from URL object or from URL string
   const params: KeyValue[] = [];
   if (typeof req.url === 'object' && req.url?.query) {
     for (const q of req.url.query) {
@@ -303,7 +295,6 @@ function parsePostmanRequest(item: PostmanItem): ApiRequest {
     }
   }
 
-  // Body
   let body: ApiRequest['body'] = { type: 'none' };
   if (req.body) {
     if (req.body.mode === 'raw') {
@@ -318,7 +309,6 @@ function parsePostmanRequest(item: PostmanItem): ApiRequest {
     }
   }
 
-  // Auth
   let auth: AuthConfig = { type: 'none' };
   if (req.auth) {
     const a = req.auth;

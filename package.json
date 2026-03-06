@@ -2,7 +2,7 @@
   "name": "open-post",
   "displayName": "Open Post",
   "description": "API Testing. Inside Your Code.",
-  "version": "0.9.5",
+  "version": "0.9.7",
   "publisher": "open-post",
   "icon": "chat.png",
   "repository": {
@@ -85,17 +85,17 @@
       {
         "command": "openPost.exportCollection",
         "title": "Export Collection",
-        "icon": "$(export)"
+        "icon": "$(desktop-download)"
       },
       {
         "command": "openPost.importCollection",
         "title": "Import Collection",
-        "icon": "$(import)"
+        "icon": "$(folder-opened)"
       },
       {
         "command": "openPost.importOpenApi",
         "title": "Import OpenAPI / Swagger",
-        "icon": "$(file-code)"
+        "icon": "$(symbol-interface)"
       }
     ],
     "viewsContainers": {
@@ -137,8 +137,7 @@
         },
         {
           "command": "openPost.importOpenApi",
-          "when": "view == openPost.collections",
-          "group": "navigation"
+          "when": "view == openPost.collections"
         },
         {
           "command": "openPost.open",
@@ -158,7 +157,7 @@
       ],
       "view/item/context": [
         {
-          "command": "openPost.deleteCollection",
+          "command": "openPost.addRequest",
           "when": "view == openPost.collections && viewItem == collection",
           "group": "inline"
         },
@@ -168,7 +167,7 @@
           "group": "inline"
         },
         {
-          "command": "openPost.addRequest",
+          "command": "openPost.deleteCollection",
           "when": "view == openPost.collections && viewItem == collection",
           "group": "inline"
         },

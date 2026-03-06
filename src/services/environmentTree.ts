@@ -6,7 +6,7 @@ class EnvironmentItem extends vscode.TreeItem {
   constructor(public readonly env: Environment, isActive: boolean) {
     super(env.name, vscode.TreeItemCollapsibleState.Collapsed);
     this.contextValue = 'environment';
-    this.iconPath = new vscode.ThemeIcon(isActive ? 'pass-filled' : 'symbol-namespace');
+    this.iconPath = new vscode.ThemeIcon(isActive ? 'pass-filled' : 'globe');
     this.description = isActive ? '● active' : `${env.variables.length} vars`;
   }
 }

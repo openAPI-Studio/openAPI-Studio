@@ -1,19 +1,30 @@
 import * as vscode from 'vscode';
 import { loadHistory, saveHistory } from '../storage/fileStore';
-import { HistoryEntry, ApiRequest } from '../core/types';
+import { HistoryEntry } from '../core/types';
+
+const METHOD_ICONS: Record<string, string> = {
+  GET: 'arrow-down', POST: 'arrow-up', PUT: 'arrow-swap', PATCH: 'edit',
+  DELETE: 'close', HEAD: 'eye', OPTIONS: 'settings-gear',
+};
 
 class HistoryItem extends vscode.TreeItem {
   constructor(public readonly entry: HistoryEntry) {
     const time = new Date(entry.timestamp).toLocaleTimeString();
-    super(`${entry.request.method} ${entry.request.url}`, vscode.TreeItemCollapsibleState.None);
+    const url = entry.request.url.replace(/^https?:\/\//, '');
+    super(`${entry.request.method} ${url}`, vscode.TreeItemCollapsibleState.None);
     this.description = `${entry.response.status} · ${entry.response.time}ms · ${time}`;
     this.iconPath = new vscode.ThemeIcon(
-      entry.response.status < 300 ? 'pass' : entry.response.status < 400 ? 'warning' : 'error'
+      METHOD_ICONS[entry.request.method] || 'symbol-event',
+      new vscode.ThemeColor(
+        entry.response.status < 300 ? 'testing.iconPassed'
+          : entry.response.status < 400 ? 'editorWarning.foreground'
+          : 'editorError.foreground'
+      )
     );
     this.command = {
       command: 'openPost.openRequest',
       title: 'Open Request',
-      arguments: [entry.request],
+      arguments: [entry.request, undefined, entry.response],
     };
   }
 }

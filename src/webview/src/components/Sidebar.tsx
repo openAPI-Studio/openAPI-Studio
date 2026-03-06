@@ -3,7 +3,7 @@ import { useAppStore } from '../stores/appStore';
 import { useTabStore } from '../stores/tabStore';
 import { postMessage, Environment, KeyValue, CollectionFolder, ApiRequest } from '../types/messages';
 import { KeyValueEditor } from './KeyValueEditor';
-import { Trash2, PanelLeftClose, PanelLeftOpen, Search, FolderOpen, FolderPlus, FilePlus, Globe, Clock, ChevronRight, ChevronDown, FileText, Pencil, Folder } from 'lucide-react';
+import { Trash2, PanelLeftClose, PanelLeftOpen, Search, FolderOpen, FolderPlus, FilePlus, Globe, Clock, ChevronRight, ChevronDown, FileText, Pencil, Folder, Download, Upload } from 'lucide-react';
 
 const tabIcons = { collections: FolderOpen, environments: Globe, history: Clock } as const;
 
@@ -152,6 +152,11 @@ export function Sidebar() {
                   }
                 }}
               >+</button>
+              <button
+                className="btn-ghost py-1 px-1.5 opacity-50 hover:opacity-100"
+                onClick={() => postMessage({ type: 'importCollection' })}
+                title="Import collection"
+              ><Upload size={13} /></button>
             </div>
             {filteredCollections.length === 0 && <p className="text-[11px] opacity-30 py-4 text-center">No collections</p>}
             {filteredCollections.map((col) => (
@@ -327,6 +332,11 @@ function CollectionNode({ col, collapsedNodes, toggleNode, confirmDelete, loadRe
             title="New request"
             onClick={(e) => { e.stopPropagation(); setCreatingIn({ colId: col.id, path: [], type: 'request' }); setCreateName(''); if (collapsedNodes.has(col.id)) toggleNode(col.id); }}
           ><FilePlus size={12} /></button>
+          <button
+            className="p-0.5 rounded transition-colors opacity-30 hover:opacity-80"
+            title="Export collection"
+            onClick={(e) => { e.stopPropagation(); postMessage({ type: 'exportCollection', collectionId: col.id }); }}
+          ><Download size={12} /></button>
           <button
             className="p-0.5 rounded transition-colors opacity-40 hover:opacity-100"
             style={{ color: 'var(--vsc-error)' }}

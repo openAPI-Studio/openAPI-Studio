@@ -172,4 +172,6 @@ export type MessageToExtension =
   | { type: 'saveCookie'; data: CookieEntry }
   | { type: 'deleteCookie'; domain: string; name: string; path: string }
   | { type: 'clearCookies' }
-  | { type: 'setCookiesEnabled'; enabled: boolean };
+  | { type: 'setCookiesEnabled'; enabled: boolean }
+  | { type: 'exportCollection'; collectionId: string }
+  | { type: 'importCollection' };

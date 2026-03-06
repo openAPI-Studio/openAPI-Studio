@@ -10,7 +10,8 @@ import { ConfirmDialog } from './components/ConfirmDialog';
 import { TabBar } from './components/TabBar';
 import { useAppStore } from './stores/appStore';
 import { useRequestStore } from './stores/requestStore';
-import { onMessage, postMessage, ApiRequest, CookieEntry } from './types/messages';
+import { useTabStore } from './stores/tabStore';
+import { onMessage, postMessage, ApiRequest, ApiResponse, CookieEntry } from './types/messages';
 
 export default function App() {
   const setResponse = useAppStore((s) => s.setResponse);
@@ -69,12 +70,16 @@ export default function App() {
         case 'history':
           setHistory(m.data as ReturnType<typeof useAppStore.getState>['history']);
           break;
-        case 'loadRequest':
-          useRequestStore.getState().loadRequest(
-            m.data as ApiRequest,
-            (m as { collectionId?: string | null }).collectionId,
+        case 'loadRequest': {
+          const msg2 = m as { data: ApiRequest; collectionId?: string | null; response?: ApiResponse | null };
+          useTabStore.getState().openRequest(
+            msg2.data,
+            msg2.collectionId,
+            undefined,
+            msg2.response ?? null,
           );
           break;
+        }
         case 'cookies':
           useAppStore.getState().setAllCookies(m.data as CookieEntry[]);
           break;
