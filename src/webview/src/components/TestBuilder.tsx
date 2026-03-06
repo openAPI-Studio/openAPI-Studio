@@ -35,7 +35,6 @@ const OPERATORS: { value: TestOperator; label: string }[] = [
   { value: 'is-type', label: 'Is Type' },
 ];
 
-const NUMERIC_SOURCES = new Set(['status', 'time', 'size', 'content-length']);
 const NO_EXPECTED = new Set(['is-empty', 'is-not-empty', 'exists', 'not-exists']);
 const NEEDS_PROPERTY = new Set(['jsonpath', 'header', 'body-contains']);
 
@@ -63,24 +62,24 @@ export function TestBuilder() {
   const removeVar = (id: string) => setSetVariables(setVariables.filter(v => v.id !== id));
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {/* Test Rules */}
       <div>
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] uppercase tracking-wider font-semibold opacity-40">Test Assertions</span>
           <button onClick={addRule} className="btn-ghost text-[11px] flex items-center gap-0.5 opacity-60 hover:opacity-100">
             <Plus size={10} /> Add Test
           </button>
         </div>
         {testRules.length === 0 && <p className="text-[11px] opacity-30 py-2">No tests configured. Click "Add Test" to start.</p>}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col">
           {testRules.map((rule) => (
-            <div key={rule.id} className="flex items-center gap-1 group">
-              <input type="checkbox" checked={rule.enabled} onChange={(e) => updateRule(rule.id, { enabled: e.target.checked })} className="shrink-0" />
+            <div key={rule.id} className="flex items-center gap-2 group" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
+              <input type="checkbox" checked={rule.enabled} onChange={(e) => updateRule(rule.id, { enabled: e.target.checked })} className="shrink-0" style={{ width: 14, height: 14 }} />
               <select
                 value={rule.source}
                 onChange={(e) => updateRule(rule.id, { source: e.target.value as TestSource, property: '', expected: e.target.value === 'status' ? '200' : '' })}
-                className="select-field text-[10px] py-0.5 w-[110px] shrink-0"
+                className="select-field text-[11px] py-1 w-[120px] shrink-0"
               >
                 {Object.entries(
                   SOURCES.reduce<Record<string, typeof SOURCES>>((g, s) => { (g[s.group] = g[s.group] || []).push(s); return g; }, {})
@@ -92,28 +91,30 @@ export function TestBuilder() {
               </select>
               {NEEDS_PROPERTY.has(rule.source) && (
                 <input
-                  className="input-field text-[10px] py-0.5 w-[100px] shrink-0 min-w-0"
+                  className="input-line text-[12px] w-[100px] shrink-0 min-w-0"
                   placeholder={rule.source === 'jsonpath' ? 'data.id' : rule.source === 'header' ? 'Header name' : 'Search text'}
                   value={rule.property}
                   onChange={(e) => updateRule(rule.id, { property: e.target.value })}
+                  style={{ borderBottom: 'none' }}
                 />
               )}
               <select
                 value={rule.operator}
                 onChange={(e) => updateRule(rule.id, { operator: e.target.value as TestOperator })}
-                className="select-field text-[10px] py-0.5 w-[100px] shrink-0"
+                className="select-field text-[11px] py-1 w-[110px] shrink-0"
               >
                 {OPERATORS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
               </select>
               {!NO_EXPECTED.has(rule.operator) && (
                 <input
-                  className="input-field text-[10px] py-0.5 flex-1 min-w-0"
+                  className="input-line text-[12px] flex-1 min-w-0"
                   placeholder={rule.operator === 'matches' ? '/regex/' : rule.operator === 'is-type' ? 'string|number|boolean|object|array' : 'Expected value'}
                   value={rule.expected}
                   onChange={(e) => updateRule(rule.id, { expected: e.target.value })}
+                  style={{ borderBottom: 'none' }}
                 />
               )}
-              <button onClick={() => removeRule(rule.id)} className="shrink-0 p-0.5 opacity-0 group-hover:opacity-50 hover:!opacity-100"><X size={11} /></button>
+              <button onClick={() => removeRule(rule.id)} className="shrink-0 p-1 opacity-0 group-hover:opacity-40 hover:!opacity-100"><X size={13} /></button>
             </div>
           ))}
         </div>
@@ -121,40 +122,42 @@ export function TestBuilder() {
 
       {/* Set Variables */}
       <div>
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center justify-between mb-1">
           <span className="text-[10px] uppercase tracking-wider font-semibold opacity-40">Set Variables</span>
           <button onClick={addVar} className="btn-ghost text-[11px] flex items-center gap-0.5 opacity-60 hover:opacity-100">
             <Plus size={10} /> Add Variable
           </button>
         </div>
         {setVariables.length === 0 && <p className="text-[11px] opacity-30 py-2">Extract response values into environment variables.</p>}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col">
           {setVariables.map((v) => (
-            <div key={v.id} className="flex items-center gap-1 group">
-              <input type="checkbox" checked={v.enabled} onChange={(e) => updateVar(v.id, { enabled: e.target.checked })} className="shrink-0" />
+            <div key={v.id} className="flex items-center gap-2 group" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
+              <input type="checkbox" checked={v.enabled} onChange={(e) => updateVar(v.id, { enabled: e.target.checked })} className="shrink-0" style={{ width: 14, height: 14 }} />
               <select
                 value={v.source}
                 onChange={(e) => updateVar(v.id, { source: e.target.value as SetVariable['source'] })}
-                className="select-field text-[10px] py-0.5 w-[100px] shrink-0"
+                className="select-field text-[11px] py-1 w-[120px] shrink-0"
               >
                 {VAR_SOURCES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
               {v.source !== 'body' && (
                 <input
-                  className="input-field text-[10px] py-0.5 flex-1 min-w-0"
+                  className="input-line text-[12px] flex-1 min-w-0"
                   placeholder={v.source === 'jsonpath' ? 'data.token' : v.source === 'header' ? 'Header name' : 'Regex pattern'}
                   value={v.property}
                   onChange={(e) => updateVar(v.id, { property: e.target.value })}
+                  style={{ borderBottom: 'none' }}
                 />
               )}
-              <span className="text-[10px] opacity-30 shrink-0">→</span>
+              <span className="text-[11px] opacity-25 shrink-0">→</span>
               <input
-                className="input-field text-[10px] py-0.5 w-[100px] shrink-0 min-w-0"
+                className="input-line text-[12px] w-[110px] shrink-0 min-w-0"
                 placeholder="{{variable}}"
                 value={v.variableName}
                 onChange={(e) => updateVar(v.id, { variableName: e.target.value })}
+                style={{ borderBottom: 'none' }}
               />
-              <button onClick={() => removeVar(v.id)} className="shrink-0 p-0.5 opacity-0 group-hover:opacity-50 hover:!opacity-100"><X size={11} /></button>
+              <button onClick={() => removeVar(v.id)} className="shrink-0 p-1 opacity-0 group-hover:opacity-40 hover:!opacity-100"><X size={13} /></button>
             </div>
           ))}
         </div>

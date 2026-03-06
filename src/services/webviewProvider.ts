@@ -189,6 +189,17 @@ export class OpenPostPanel {
         this.notifyDataChanged();
         break;
       }
+      case 'deleteRequest': {
+        const collections = store.loadCollections();
+        const col = collections.find(c => c.id === msg.collectionId);
+        if (col) {
+          col.requests = col.requests.filter(r => r.id !== msg.requestId);
+          store.saveCollections(collections);
+          this.postMessage({ type: 'collections', data: collections });
+          this.notifyDataChanged();
+        }
+        break;
+      }
       case 'saveRequest': {
         const collections = store.loadCollections();
         const col = collections.find(c => c.id === msg.data.collectionId);

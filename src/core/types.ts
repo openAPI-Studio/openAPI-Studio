@@ -161,6 +161,7 @@ export type MessageToExtension =
   | { type: 'loadHistory' }
   | { type: 'createCollection'; name: string }
   | { type: 'deleteCollection'; id: string }
+  | { type: 'deleteRequest'; collectionId: string; requestId: string }
   | { type: 'runPreRequestScript'; script: string; request: ApiRequest }
   | { type: 'runTestScript'; script: string; request: ApiRequest; response: ApiResponse }
   | { type: 'pickFile'; purpose: string }

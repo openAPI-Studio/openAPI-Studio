@@ -52,7 +52,7 @@ export function AuthPanel() {
           <Field label="Value" value={auth.apiKey?.value || ''} placeholder="API key value"
             onChange={(v) => setAuth({ ...auth, apiKey: { ...auth.apiKey!, value: v } })} />
           <div>
-            <label className="text-[10px] opacity-50 block mb-1">Add to</label>
+            <label className="text-[10px] uppercase tracking-wider opacity-35 font-medium block mb-0.5">Add to</label>
             <select className="select-field w-32 text-xs"
               value={auth.apiKey?.addTo || 'header'}
               onChange={(e) => setAuth({ ...auth, apiKey: { ...auth.apiKey!, addTo: e.target.value as 'header' | 'query' } })}
@@ -67,7 +67,7 @@ export function AuthPanel() {
       {auth.type === 'oauth2' && (
         <div className="flex flex-col gap-2">
           <div>
-            <label className="text-[10px] opacity-50 block mb-1">Grant Type</label>
+            <label className="text-[10px] uppercase tracking-wider opacity-35 font-medium block mb-0.5">Grant Type</label>
             <select className="select-field w-48 text-xs"
               value={auth.oauth2?.grantType || 'authorization_code'}
               onChange={(e) => setAuth({ ...auth, oauth2: { ...auth.oauth2!, grantType: e.target.value as 'authorization_code' | 'client_credentials' } })}
@@ -114,9 +114,9 @@ function Field({ label, value, onChange, type, placeholder, readOnly }: {
 }) {
   return (
     <div>
-      <label className="text-[10px] opacity-50 block mb-1">{label}</label>
+      <label className="text-[10px] uppercase tracking-wider opacity-35 font-medium block mb-0.5">{label}</label>
       <input
-        className="input-field w-full text-xs"
+        className="input-line w-full text-[12px]"
         type={type || 'text'}
         placeholder={placeholder || label}
         value={value}

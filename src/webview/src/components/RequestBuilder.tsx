@@ -115,15 +115,13 @@ export function RequestBuilder() {
             title="Click to rename"
           >
             {name || 'Untitled Request'}
-            <Pencil size={10} className="opacity-0 group-hover:opacity-60 transition-opacity shrink-0" />
+            <Pencil size={10} className="opacity-30 group-hover:opacity-60 transition-opacity shrink-0" />
           </button>
         )}
         <div className="flex items-center gap-1 ml-auto shrink-0">
-          {hasSource && (
-            <button onClick={saveUpdate} className="btn-primary shrink-0 p-1.5" title="Save">
-              <Save size={13} />
-            </button>
-          )}
+          <button onClick={hasSource ? saveUpdate : () => setShowSaveMenu(!showSaveMenu)} className="btn-primary shrink-0 p-1.5" title="Save">
+            <Save size={13} />
+          </button>
           <div className="relative">
             <button
               onClick={() => setShowSaveMenu(!showSaveMenu)}

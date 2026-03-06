@@ -30,7 +30,7 @@ export function AutocompleteInput({ value, onChange, suggestions, placeholder, c
     <div ref={ref} className="relative flex-1">
       <input
         ref={inputRef}
-        className={className || 'input-field w-full text-[11px] py-1'}
+        className={className || 'input-line w-full text-[12px]'}
         placeholder={placeholder}
         value={value}
         onChange={(e) => { onChange(e.target.value); setOpen(true); }}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useRequestStore } from '../stores/requestStore';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { HighlightedEditor } from './HighlightedEditor';
 
 const PRE_SNIPPETS = [
   { label: 'Set header', code: 'request.headers["X-Custom"] = "value";' },
@@ -74,11 +75,11 @@ export function ScriptEditor() {
           <label className="text-[10px] opacity-50">Pre-request Script</label>
           <SnippetBar snippets={PRE_SNIPPETS} onInsert={insertPre} />
         </div>
-        <textarea
-          className="input-field w-full h-28 font-mono text-[11px] resize-y"
-          placeholder={'// Runs before the request is sent\n// Modify request headers, params, or body\n// Read/write environment variables'}
+        <HighlightedEditor
           value={preRequestScript}
-          onChange={(e) => setPreRequestScript(e.target.value)}
+          onChange={setPreRequestScript}
+          placeholder={'// Runs before the request is sent\n// Modify request headers, params, or body\n// Read/write environment variables'}
+          className="h-28"
         />
       </div>
 
@@ -88,11 +89,11 @@ export function ScriptEditor() {
           <label className="text-[10px] opacity-50">Test Script</label>
           <SnippetBar snippets={TEST_SNIPPETS} onInsert={insertTest} />
         </div>
-        <textarea
-          className="input-field w-full h-28 font-mono text-[11px] resize-y"
-          placeholder={'// Runs after the response is received\n// Assert status, parse JSON, save values to env\n// Output appears in response body'}
+        <HighlightedEditor
           value={testScript}
-          onChange={(e) => setTestScript(e.target.value)}
+          onChange={setTestScript}
+          placeholder={'// Runs after the response is received\n// Assert status, parse JSON, save values to env\n// Output appears in response body'}
+          className="h-28"
         />
       </div>
     </div>
