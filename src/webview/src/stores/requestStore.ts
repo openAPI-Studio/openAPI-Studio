@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { HttpMethod, KeyValue, RequestBody, AuthConfig, ApiRequest } from '../types/messages';
+import { HttpMethod, KeyValue, RequestBody, AuthConfig, ApiRequest, TestRule, SetVariable } from '../types/messages';
 
 function paramsFromUrl(url: string): KeyValue[] {
   try {
@@ -32,7 +32,9 @@ interface RequestState {
   name: string;
   preRequestScript: string;
   testScript: string;
-  activeTab: 'params' | 'headers' | 'body' | 'auth' | 'scripts';
+  testRules: TestRule[];
+  setVariables: SetVariable[];
+  activeTab: 'params' | 'headers' | 'body' | 'auth' | 'tests' | 'scripts';
   sourceRequestId: string | null;
   sourceCollectionId: string | null;
   setMethod: (m: HttpMethod) => void;
@@ -45,6 +47,8 @@ interface RequestState {
   setName: (n: string) => void;
   setPreRequestScript: (s: string) => void;
   setTestScript: (s: string) => void;
+  setTestRules: (r: TestRule[]) => void;
+  setSetVariables: (v: SetVariable[]) => void;
   setActiveTab: (t: RequestState['activeTab']) => void;
   toApiRequest: () => ApiRequest;
   loadRequest: (r: ApiRequest, collectionId?: string | null) => void;
@@ -66,6 +70,8 @@ const defaultState = {
   name: 'New Request',
   preRequestScript: '',
   testScript: '',
+  testRules: [] as TestRule[],
+  setVariables: [] as SetVariable[],
   activeTab: 'headers' as const,
   sourceRequestId: null as string | null,
   sourceCollectionId: null as string | null,
@@ -92,6 +98,8 @@ export const useRequestStore = create<RequestState>((set, get) => ({
   setName: (name) => set({ name }),
   setPreRequestScript: (preRequestScript) => set({ preRequestScript }),
   setTestScript: (testScript) => set({ testScript }),
+  setTestRules: (testRules) => set({ testRules }),
+  setSetVariables: (setVariables) => set({ setVariables }),
   setActiveTab: (activeTab) => set({ activeTab }),
   toApiRequest: () => {
     const s = get();
@@ -106,6 +114,8 @@ export const useRequestStore = create<RequestState>((set, get) => ({
       auth: s.auth,
       preRequestScript: s.preRequestScript || undefined,
       testScript: s.testScript || undefined,
+      testRules: s.testRules.length ? s.testRules : undefined,
+      setVariables: s.setVariables.length ? s.setVariables : undefined,
     };
   },
   loadRequest: (r, collectionId) => set({
@@ -118,6 +128,8 @@ export const useRequestStore = create<RequestState>((set, get) => ({
     name: r.name,
     preRequestScript: r.preRequestScript || '',
     testScript: r.testScript || '',
+    testRules: r.testRules || [],
+    setVariables: r.setVariables || [],
     sourceRequestId: r.id || null,
     sourceCollectionId: collectionId ?? null,
   }),

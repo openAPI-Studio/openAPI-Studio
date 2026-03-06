@@ -9,6 +9,7 @@ import { BodyEditor } from './BodyEditor';
 import { AuthPanel } from './AuthPanel';
 import { STANDARD_HEADERS, HEADER_VALUES } from '../data/headers';
 import { ScriptEditor } from './ScriptEditor';
+import { TestBuilder } from './TestBuilder';
 import { CodeExportPanel } from './CodeExportPanel';
 import { AIPromptPanel } from './AIPromptPanel';
 import { LANGUAGES, CodeLanguage } from '../utils/codeGen';
@@ -92,7 +93,7 @@ export function RequestBuilder() {
     setShowSaveMenu(false);
   };
 
-  const tabs = ['params', 'headers', 'body', 'auth', 'scripts'] as const;
+  const tabs = ['params', 'headers', 'body', 'auth', 'tests', 'scripts'] as const;
 
   return (
     <div className="flex flex-col gap-2.5 h-full overflow-hidden">
@@ -218,6 +219,7 @@ export function RequestBuilder() {
             {activeTab === 'headers' && <KeyValueEditor items={headers} onChange={setHeaders} keyPlaceholder="Header" valuePlaceholder="Value" keySuggestions={STANDARD_HEADERS} valueSuggestionsMap={HEADER_VALUES} />}
             {activeTab === 'body' && <BodyEditor />}
             {activeTab === 'auth' && <AuthPanel />}
+            {activeTab === 'tests' && <TestBuilder />}
             {activeTab === 'scripts' && <ScriptEditor />}
           </div>
         </div>

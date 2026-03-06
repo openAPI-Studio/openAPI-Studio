@@ -53,6 +53,36 @@ export interface ApiRequest {
   auth: AuthConfig;
   preRequestScript?: string;
   testScript?: string;
+  testRules?: TestRule[];
+  setVariables?: SetVariable[];
+}
+
+export type TestSource = 'status' | 'time' | 'size' | 'body' | 'jsonpath' | 'header' | 'content-type' | 'content-length' | 'body-contains' | 'body-is-json' | 'body-schema';
+export type TestOperator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'not-contains' | 'matches' | 'not-matches' | 'is-empty' | 'is-not-empty' | 'exists' | 'not-exists' | 'is-type';
+
+export interface TestRule {
+  id: string;
+  source: TestSource;
+  property: string;
+  operator: TestOperator;
+  expected: string;
+  enabled: boolean;
+}
+
+export interface TestResult {
+  ruleId: string;
+  passed: boolean;
+  label: string;
+  actual: string;
+  expected: string;
+}
+
+export interface SetVariable {
+  id: string;
+  source: 'jsonpath' | 'header' | 'body' | 'regex';
+  property: string;
+  variableName: string;
+  enabled: boolean;
 }
 
 export interface ApiResponse {
@@ -63,6 +93,7 @@ export interface ApiResponse {
   time: number;
   size: number;
   cookies?: CookieEntry[];
+  testResults?: TestResult[];
 }
 
 export interface Environment {

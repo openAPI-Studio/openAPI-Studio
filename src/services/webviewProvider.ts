@@ -6,6 +6,7 @@ import { executeRequest } from '../core/httpClient';
 import { applyAuth } from '../auth/authHandler';
 import { runScript } from '../scripting/sandbox';
 import { parseSetCookieHeader, getMatchingCookies, mergeCookies, serializeCookieHeader } from '../core/cookieJar';
+import { evaluateTests, extractVariables } from '../core/testRunner';
 import * as store from '../storage/fileStore';
 
 export class OpenPostPanel {
@@ -125,7 +126,26 @@ export class OpenPostPanel {
           response.cookies = responseCookies;
           delete (response as any).setCookieHeaders;
 
-          // Test script
+          // Extract variables from response
+          if (request.setVariables?.length) {
+            const extracted = extractVariables(request.setVariables, response);
+            if (Object.keys(extracted).length && activeEnv) {
+              for (const [k, v] of Object.entries(extracted)) {
+                const existing = activeEnv.variables.find(ev => ev.key === k);
+                if (existing) { existing.value = v; }
+                else { activeEnv.variables.push({ key: k, value: v, enabled: true }); }
+              }
+              store.saveEnvironments(envs);
+              this.postMessage({ type: 'environments', data: envs });
+            }
+          }
+
+          // Evaluate GUI test rules
+          if (request.testRules?.length) {
+            response.testResults = evaluateTests(request.testRules, response);
+          }
+
+          // Test script (legacy)
           if (request.testScript) {
             const result = runScript(request.testScript, { request, response, environment: envVars });
             if (result.logs.length > 0) {

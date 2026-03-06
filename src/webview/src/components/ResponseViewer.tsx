@@ -156,17 +156,22 @@ export function ResponseViewer() {
 
       {/* Tabs */}
       <div className="flex gap-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
-        {(['body', 'headers', 'cookies'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setResponseTab(tab)}
-            className={responseTab === tab ? 'tab-btn-active' : 'tab-btn'}
-          >
-            {tab}
-            {tab === 'headers' ? ` (${Object.keys(response.headers).length})` : ''}
-            {tab === 'cookies' ? ` (${response.cookies?.length || 0})` : ''}
-          </button>
-        ))}
+        {(['body', 'headers', 'cookies', 'tests'] as const).map((tab) => {
+          const results = response.testResults || [];
+          const passed = results.filter(r => r.passed).length;
+          return (
+            <button
+              key={tab}
+              onClick={() => setResponseTab(tab)}
+              className={responseTab === tab ? 'tab-btn-active' : 'tab-btn'}
+            >
+              {tab}
+              {tab === 'headers' ? ` (${Object.keys(response.headers).length})` : ''}
+              {tab === 'cookies' ? ` (${response.cookies?.length || 0})` : ''}
+              {tab === 'tests' && results.length > 0 ? ` (${passed}/${results.length})` : ''}
+            </button>
+          );
+        })}
       </div>
 
       {/* Content */}
@@ -247,6 +252,49 @@ export function ResponseViewer() {
                 ))}
               </>
             )}
+          </div>
+        )}
+
+        {responseTab === 'tests' && (
+          <div className="max-h-[400px] overflow-auto">
+            {(!response.testResults || response.testResults.length === 0) ? (
+              <p className="text-[11px] opacity-30 py-4 text-center">No tests configured for this request</p>
+            ) : (() => {
+              const results = response.testResults!;
+              const passed = results.filter(r => r.passed).length;
+              const failed = results.length - passed;
+              return (
+                <>
+                  <div className="flex items-center gap-3 px-2.5 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(128,128,128,0.2)' }}>
+                      <div className="h-full rounded-full" style={{ width: `${(passed / results.length) * 100}%`, background: passed === results.length ? 'var(--vsc-success)' : 'var(--vsc-warning)' }} />
+                    </div>
+                    <span className="text-[11px] shrink-0">
+                      <span style={{ color: 'var(--vsc-success)' }}>{passed} passed</span>
+                      {failed > 0 && <span style={{ color: 'var(--vsc-error)' }}>, {failed} failed</span>}
+                    </span>
+                  </div>
+                  {results.map((r, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-2 px-2.5 py-2 text-[11px]"
+                      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', borderLeft: `3px solid ${r.passed ? 'var(--vsc-success)' : 'var(--vsc-error)'}` }}
+                    >
+                      <span className="shrink-0 mt-0.5">{r.passed ? '✅' : '❌'}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium opacity-80">{r.label}</div>
+                        {!r.passed && (
+                          <div className="flex gap-3 mt-0.5 font-mono text-[10px]">
+                            <span className="opacity-40">actual: <span style={{ color: 'var(--vsc-error)' }}>{r.actual.length > 100 ? r.actual.slice(0, 100) + '…' : r.actual}</span></span>
+                            <span className="opacity-40">expected: <span style={{ color: 'var(--vsc-success)' }}>{r.expected.length > 100 ? r.expected.slice(0, 100) + '…' : r.expected}</span></span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              );
+            })()}
           </div>
         )}
       </div>

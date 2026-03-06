@@ -23,7 +23,7 @@ interface AppState {
   activeEnvironmentId: string | null;
   collections: Collection[];
   history: HistoryEntry[];
-  responseTab: 'body' | 'headers' | 'cookies';
+  responseTab: 'body' | 'headers' | 'cookies' | 'tests';
   bodyViewMode: 'pretty' | 'raw' | 'tree';
   sidebarTab: 'collections' | 'environments' | 'history';
   sidebarCollapsed: boolean;
