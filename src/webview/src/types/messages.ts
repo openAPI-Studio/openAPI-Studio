@@ -20,6 +20,18 @@ export interface FormDataItem extends KeyValue {
   fileName?: string;
 }
 
+export interface CookieEntry {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  expires: string | null;
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: 'Strict' | 'Lax' | 'None' | null;
+  createdAt: string;
+}
+
 export interface RequestBody {
   type: BodyType;
   raw?: string;
@@ -50,6 +62,7 @@ export interface ApiResponse {
   body: string;
   time: number;
   size: number;
+  cookies?: CookieEntry[];
 }
 
 export interface Environment {

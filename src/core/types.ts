@@ -65,6 +65,7 @@ export interface ApiResponse {
   body: string;
   time: number;
   size: number;
+  cookies?: CookieEntry[];
 }
 
 export interface Environment {
@@ -88,6 +89,18 @@ export interface Collection {
   variables: KeyValue[];
 }
 
+export interface CookieEntry {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  expires: string | null; // ISO string or null for session
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: 'Strict' | 'Lax' | 'None' | null;
+  createdAt: string;
+}
+
 export interface HistoryEntry {
   id: string;
   timestamp: number;
@@ -103,7 +116,8 @@ export type MessageToWebview =
   | { type: 'collections'; data: Collection[] }
   | { type: 'history'; data: HistoryEntry[] }
   | { type: 'activeEnvironment'; id: string | null }
-  | { type: 'filePicked'; purpose: string; filePath: string; fileName: string };
+  | { type: 'filePicked'; purpose: string; filePath: string; fileName: string }
+  | { type: 'cookies'; data: CookieEntry[] };
 
 export type MessageToExtension =
   | { type: 'sendRequest'; data: ApiRequest; sslVerification?: boolean }
@@ -119,4 +133,9 @@ export type MessageToExtension =
   | { type: 'runPreRequestScript'; script: string; request: ApiRequest }
   | { type: 'runTestScript'; script: string; request: ApiRequest; response: ApiResponse }
   | { type: 'pickFile'; purpose: string }
-  | { type: 'clearHistory' };
+  | { type: 'clearHistory' }
+  | { type: 'loadCookies' }
+  | { type: 'saveCookie'; data: CookieEntry }
+  | { type: 'deleteCookie'; domain: string; name: string; path: string }
+  | { type: 'clearCookies' }
+  | { type: 'setCookiesEnabled'; enabled: boolean };

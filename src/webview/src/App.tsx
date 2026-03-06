@@ -9,7 +9,7 @@ import { ToastContainer } from './components/ToastContainer';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { useAppStore } from './stores/appStore';
 import { useRequestStore } from './stores/requestStore';
-import { onMessage, postMessage, ApiRequest } from './types/messages';
+import { onMessage, postMessage, ApiRequest, CookieEntry } from './types/messages';
 
 export default function App() {
   const setResponse = useAppStore((s) => s.setResponse);
@@ -25,7 +25,11 @@ export default function App() {
   const setSidebarWidth = useAppStore((s) => s.setSidebarWidth);
   const sslVerification = useAppStore((s) => s.sslVerification);
   const setSslVerification = useAppStore((s) => s.setSslVerification);
+  const cookiesEnabled = useAppStore((s) => s.cookiesEnabled);
+  const setCookiesEnabled = useAppStore((s) => s.setCookiesEnabled);
+  const allCookies = useAppStore((s) => s.allCookies);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCookieManager, setShowCookieManager] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,12 +74,16 @@ export default function App() {
             (m as { collectionId?: string | null }).collectionId,
           );
           break;
+        case 'cookies':
+          useAppStore.getState().setAllCookies(m.data as CookieEntry[]);
+          break;
       }
     });
 
     postMessage({ type: 'loadCollections' });
     postMessage({ type: 'loadEnvironments' });
     postMessage({ type: 'loadHistory' });
+    postMessage({ type: 'loadCookies' });
   }, []);
 
   return (
@@ -108,6 +116,24 @@ export default function App() {
                   />
                   SSL Verification
                 </label>
+                <label className="flex items-center gap-2 cursor-pointer px-2.5 py-1.5 hover:opacity-80">
+                  <input
+                    type="checkbox"
+                    checked={cookiesEnabled}
+                    onChange={(e) => {
+                      setCookiesEnabled(e.target.checked);
+                      postMessage({ type: 'setCookiesEnabled', enabled: e.target.checked });
+                    }}
+                  />
+                  Cookies Enabled
+                </label>
+                <div style={{ borderTop: '1px solid var(--vsc-border-visible)', margin: '2px 0' }} />
+                <button
+                  className="w-full text-left px-2.5 py-1.5 hover:opacity-80"
+                  onClick={() => { setShowSettings(false); setShowCookieManager(true); }}
+                >
+                  Manage Cookies ({allCookies.length})
+                </button>
                 <div style={{ borderTop: '1px solid var(--vsc-border-visible)', margin: '2px 0' }} />
                 <button
                   className="w-full text-left px-2.5 py-1.5 hover:opacity-80"
@@ -176,6 +202,75 @@ export default function App() {
 
       <ToastContainer />
       <ConfirmDialog />
+
+      {/* Cookie Manager Modal */}
+      {showCookieManager && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowCookieManager(false)} />
+          <div
+            className="fixed inset-x-4 top-8 bottom-8 z-50 mx-auto max-w-[600px] rounded-lg flex flex-col overflow-hidden"
+            style={{ background: 'var(--vsc-editor-bg)', border: '1px solid var(--vsc-border-visible)' }}
+          >
+            <div className="flex items-center justify-between px-4 py-2.5 shrink-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
+              <span className="text-xs font-semibold">Cookie Manager ({allCookies.length})</span>
+              <div className="flex items-center gap-2">
+                <button
+                  className="text-[11px] opacity-60 hover:opacity-100 px-2 py-0.5 rounded"
+                  style={{ background: 'var(--vsc-error)' , color: '#000' }}
+                  onClick={() => {
+                    useAppStore.getState().showConfirm({
+                      title: 'Clear All Cookies',
+                      message: 'Delete all stored cookies? This cannot be undone.',
+                      onConfirm: () => postMessage({ type: 'clearCookies' }),
+                    });
+                  }}
+                >Clear All</button>
+                <button className="opacity-50 hover:opacity-100" onClick={() => setShowCookieManager(false)}>✕</button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-3">
+              {allCookies.length === 0 ? (
+                <p className="text-[11px] opacity-30 text-center py-8">No cookies stored</p>
+              ) : (
+                Object.entries(
+                  allCookies.reduce<Record<string, typeof allCookies>>((acc, c) => {
+                    (acc[c.domain] = acc[c.domain] || []).push(c);
+                    return acc;
+                  }, {})
+                ).map(([domain, cookies]) => (
+                  <div key={domain} className="mb-3">
+                    <div className="text-[11px] font-semibold opacity-60 mb-1 flex items-center gap-1">
+                      <span>🌐</span> {domain}
+                      <span className="opacity-40 font-normal">({cookies.length})</span>
+                    </div>
+                    {cookies.map((c, i) => (
+                      <div
+                        key={`${c.name}-${c.path}-${i}`}
+                        className="flex items-center gap-2 px-2 py-1.5 text-[11px] font-mono group rounded"
+                        style={{ borderBottom: '1px solid rgba(128,128,128,0.1)' }}
+                      >
+                        <span className="w-[25%] shrink-0 truncate font-medium opacity-70" title={c.name}>{c.name}</span>
+                        <span className="w-[30%] shrink-0 truncate opacity-40" title={c.value}>{c.value}</span>
+                        <span className="w-[10%] shrink-0 truncate opacity-40">{c.path}</span>
+                        <span className="w-[20%] shrink-0 truncate opacity-40">{c.expires ? new Date(c.expires).toLocaleDateString() : 'Session'}</span>
+                        <div className="w-[10%] flex gap-1">
+                          {c.httpOnly && <span className="text-[8px] opacity-40">HO</span>}
+                          {c.secure && <span className="text-[8px] opacity-40">S</span>}
+                        </div>
+                        <button
+                          className="opacity-0 group-hover:opacity-60 hover:!opacity-100 shrink-0"
+                          onClick={() => postMessage({ type: 'deleteCookie', domain: c.domain, name: c.name, path: c.path })}
+                          title="Delete cookie"
+                        >✕</button>
+                      </div>
+                    ))}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

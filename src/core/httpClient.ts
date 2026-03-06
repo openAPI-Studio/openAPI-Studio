@@ -46,6 +46,9 @@ export async function executeRequest(
     const responseHeaders: Record<string, string> = {};
     res.headers.forEach((v, k) => { responseHeaders[k] = v; });
 
+    // Capture raw set-cookie headers (getSetCookie available in Node 18.14+)
+    const setCookieHeaders: string[] = (res.headers as any).getSetCookie?.() || [];
+
     return {
       status: res.status,
       statusText: res.statusText,
@@ -53,7 +56,8 @@ export async function executeRequest(
       body: responseBody,
       time,
       size: new TextEncoder().encode(responseBody).length,
-    };
+      setCookieHeaders,
+    } as ApiResponse & { setCookieHeaders: string[] };
   } catch (err: unknown) {
     const time = Math.round(performance.now() - start);
     const message = err instanceof Error ? err.message : 'Unknown error';

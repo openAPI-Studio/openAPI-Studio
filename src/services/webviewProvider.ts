@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { MessageToExtension, MessageToWebview, Collection, HistoryEntry, ApiRequest } from '../core/types';
+import { MessageToExtension, MessageToWebview, Collection, HistoryEntry, ApiRequest, CookieEntry } from '../core/types';
 import { executeRequest } from '../core/httpClient';
 import { applyAuth } from '../auth/authHandler';
 import { runScript } from '../scripting/sandbox';
+import { parseSetCookieHeader, getMatchingCookies, mergeCookies, serializeCookieHeader } from '../core/cookieJar';
 import * as store from '../storage/fileStore';
 
 export class OpenPostPanel {
@@ -90,7 +91,39 @@ export class OpenPostPanel {
             }
           }
 
-          const response = await executeRequest(request, envVars, msg.sslVerification !== false);
+          // Attach cookies from jar
+          const cookiesEnabled = store.loadCookiesEnabled();
+          if (cookiesEnabled) {
+            const jar = store.loadCookies();
+            const resolvedUrl = request.url.replace(/\{\{(\w+)\}\}/g, (_, k) => envVars[k] ?? `{{${k}}}`);
+            const matching = getMatchingCookies(jar, resolvedUrl);
+            if (matching.length) {
+              const existing = request.headers.find(h => h.enabled && h.key.toLowerCase() === 'cookie');
+              if (existing) {
+                existing.value = existing.value + '; ' + serializeCookieHeader(matching);
+              } else {
+                request.headers.push({ key: 'Cookie', value: serializeCookieHeader(matching), enabled: true });
+              }
+            }
+          }
+
+          const rawResponse = await executeRequest(request, envVars, msg.sslVerification !== false);
+          const response = rawResponse as typeof rawResponse & { setCookieHeaders?: string[] };
+
+          // Parse and store response cookies
+          let responseCookies: CookieEntry[] = [];
+          if (cookiesEnabled && response.setCookieHeaders?.length) {
+            const resolvedUrl = request.url.replace(/\{\{(\w+)\}\}/g, (_, k) => envVars[k] ?? `{{${k}}}`);
+            responseCookies = response.setCookieHeaders
+              .map(h => parseSetCookieHeader(h, resolvedUrl))
+              .filter((c): c is CookieEntry => c !== null);
+            if (responseCookies.length) {
+              const jar = store.loadCookies();
+              store.saveCookies(mergeCookies(jar, responseCookies));
+            }
+          }
+          response.cookies = responseCookies;
+          delete (response as any).setCookieHeaders;
 
           // Test script
           if (request.testScript) {
@@ -191,6 +224,30 @@ export class OpenPostPanel {
         }
         break;
       }
+      case 'loadCookies':
+        this.postMessage({ type: 'cookies', data: store.loadCookies() });
+        break;
+      case 'saveCookie': {
+        const jar = store.loadCookies();
+        const idx = jar.findIndex(c => c.domain === msg.data.domain && c.path === msg.data.path && c.name === msg.data.name);
+        if (idx >= 0) { jar[idx] = msg.data; } else { jar.push(msg.data); }
+        store.saveCookies(jar);
+        this.postMessage({ type: 'cookies', data: jar });
+        break;
+      }
+      case 'deleteCookie': {
+        const jar = store.loadCookies().filter(c => !(c.domain === msg.domain && c.name === msg.name && c.path === msg.path));
+        store.saveCookies(jar);
+        this.postMessage({ type: 'cookies', data: jar });
+        break;
+      }
+      case 'clearCookies':
+        store.saveCookies([]);
+        this.postMessage({ type: 'cookies', data: [] });
+        break;
+      case 'setCookiesEnabled':
+        store.saveCookiesEnabled(msg.enabled);
+        break;
     }
   }
 

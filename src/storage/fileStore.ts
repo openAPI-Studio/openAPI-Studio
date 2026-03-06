@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Collection, Environment, HistoryEntry } from '../core/types';
+import { Collection, Environment, HistoryEntry, CookieEntry } from '../core/types';
 
 function getStoragePath(): string | undefined {
   const folders = vscode.workspace.workspaceFolders;
@@ -82,5 +82,37 @@ export function loadActiveEnvironmentId(): string | null {
 export function saveActiveEnvironmentId(id: string | null) {
   const dir = getStoragePath();
   if (!dir) { return; }
-  writeJson(path.join(dir, 'config.json'), { activeEnvironmentId: id });
+  const config = readJson<Record<string, unknown>>(path.join(dir, 'config.json'), {});
+  writeJson(path.join(dir, 'config.json'), { ...config, activeEnvironmentId: id });
+}
+
+// Cookies
+export function loadCookies(): CookieEntry[] {
+  const dir = getStoragePath();
+  if (!dir) { return []; }
+  const cookies = readJson<CookieEntry[]>(path.join(dir, 'cookies.json'), []);
+  // Remove expired cookies
+  const now = new Date().toISOString();
+  return cookies.filter(c => !c.expires || c.expires > now);
+}
+
+export function saveCookies(cookies: CookieEntry[]) {
+  const dir = getStoragePath();
+  if (!dir) { return; }
+  writeJson(path.join(dir, 'cookies.json'), cookies);
+}
+
+// Cookies enabled setting
+export function loadCookiesEnabled(): boolean {
+  const dir = getStoragePath();
+  if (!dir) { return true; }
+  const config = readJson<{ cookiesEnabled?: boolean }>(path.join(dir, 'config.json'), {});
+  return config.cookiesEnabled !== false;
+}
+
+export function saveCookiesEnabled(enabled: boolean) {
+  const dir = getStoragePath();
+  if (!dir) { return; }
+  const config = readJson<Record<string, unknown>>(path.join(dir, 'config.json'), {});
+  writeJson(path.join(dir, 'config.json'), { ...config, cookiesEnabled: enabled });
 }

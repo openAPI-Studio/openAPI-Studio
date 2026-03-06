@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ApiResponse, Environment, Collection, HistoryEntry } from '../types/messages';
+import { ApiResponse, Environment, Collection, HistoryEntry, CookieEntry } from '../types/messages';
 
 export interface Toast {
   id: string;
@@ -23,7 +23,7 @@ interface AppState {
   activeEnvironmentId: string | null;
   collections: Collection[];
   history: HistoryEntry[];
-  responseTab: 'body' | 'headers';
+  responseTab: 'body' | 'headers' | 'cookies';
   bodyViewMode: 'pretty' | 'raw' | 'tree';
   sidebarTab: 'collections' | 'environments' | 'history';
   sidebarCollapsed: boolean;
@@ -33,6 +33,8 @@ interface AppState {
   showCodePanel: boolean;
   codePanelRatio: number;
   sslVerification: boolean;
+  cookiesEnabled: boolean;
+  allCookies: CookieEntry[];
   toasts: Toast[];
   confirmDialog: ConfirmDialog | null;
   setResponse: (r: ApiResponse | null) => void;
@@ -53,6 +55,8 @@ interface AppState {
   setShowCodePanel: (v: boolean) => void;
   setCodePanelRatio: (v: number) => void;
   setSslVerification: (v: boolean) => void;
+  setCookiesEnabled: (v: boolean) => void;
+  setAllCookies: (c: CookieEntry[]) => void;
   addToast: (t: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
   showConfirm: (d: ConfirmDialog) => void;
@@ -78,6 +82,8 @@ export const useAppStore = create<AppState>((set) => ({
   showCodePanel: false,
   codePanelRatio: 0.5,
   sslVerification: true,
+  cookiesEnabled: true,
+  allCookies: [],
   toasts: [],
   confirmDialog: null,
   setResponse: (response) => set({ response, error: null, viewedHistoryId: null }),
@@ -98,6 +104,8 @@ export const useAppStore = create<AppState>((set) => ({
   setShowCodePanel: (showCodePanel) => set({ showCodePanel }),
   setCodePanelRatio: (codePanelRatio) => set({ codePanelRatio }),
   setSslVerification: (sslVerification) => set({ sslVerification }),
+  setCookiesEnabled: (cookiesEnabled) => set({ cookiesEnabled }),
+  setAllCookies: (allCookies) => set({ allCookies }),
   addToast: (t) => {
     const id = Date.now().toString() + Math.random().toString(36).slice(2);
     set((s) => ({ toasts: [...s.toasts, { ...t, id }] }));
