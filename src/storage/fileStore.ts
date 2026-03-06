@@ -116,3 +116,18 @@ export function saveCookiesEnabled(enabled: boolean) {
   const config = readJson<Record<string, unknown>>(path.join(dir, 'config.json'), {});
   writeJson(path.join(dir, 'config.json'), { ...config, cookiesEnabled: enabled });
 }
+
+// Tab settings
+export function loadTabSettings(): { tabViewCollapsed: boolean; tabGrouping: boolean } {
+  const dir = getStoragePath();
+  if (!dir) { return { tabViewCollapsed: false, tabGrouping: false }; }
+  const config = readJson<{ tabViewCollapsed?: boolean; tabGrouping?: boolean }>(path.join(dir, 'config.json'), {});
+  return { tabViewCollapsed: !!config.tabViewCollapsed, tabGrouping: !!config.tabGrouping };
+}
+
+export function saveTabSetting(key: 'tabViewCollapsed' | 'tabGrouping', value: boolean) {
+  const dir = getStoragePath();
+  if (!dir) { return; }
+  const config = readJson<Record<string, unknown>>(path.join(dir, 'config.json'), {});
+  writeJson(path.join(dir, 'config.json'), { ...config, [key]: value });
+}

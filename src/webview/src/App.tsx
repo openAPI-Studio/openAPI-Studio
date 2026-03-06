@@ -29,6 +29,10 @@ export default function App() {
   const setSslVerification = useAppStore((s) => s.setSslVerification);
   const cookiesEnabled = useAppStore((s) => s.cookiesEnabled);
   const setCookiesEnabled = useAppStore((s) => s.setCookiesEnabled);
+  const tabViewCollapsed = useAppStore((s) => s.tabViewCollapsed);
+  const setTabViewCollapsed = useAppStore((s) => s.setTabViewCollapsed);
+  const tabGrouping = useAppStore((s) => s.tabGrouping);
+  const setTabGrouping = useAppStore((s) => s.setTabGrouping);
   const allCookies = useAppStore((s) => s.allCookies);
   const [showSettings, setShowSettings] = useState(false);
   const [showCookieManager, setShowCookieManager] = useState(false);
@@ -83,6 +87,12 @@ export default function App() {
         case 'cookies':
           useAppStore.getState().setAllCookies(m.data as CookieEntry[]);
           break;
+        case 'tabSettings': {
+          const ts = (m as any).data;
+          useAppStore.getState().setTabViewCollapsed(ts.tabViewCollapsed);
+          useAppStore.getState().setTabGrouping(ts.tabGrouping);
+          break;
+        }
       }
     });
 
@@ -90,6 +100,7 @@ export default function App() {
     postMessage({ type: 'loadEnvironments' });
     postMessage({ type: 'loadHistory' });
     postMessage({ type: 'loadCookies' });
+    postMessage({ type: 'loadTabSettings' });
   }, []);
 
   return (
@@ -132,6 +143,28 @@ export default function App() {
                     }}
                   />
                   Cookies Enabled
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer px-2.5 py-1.5 hover:opacity-80">
+                  <input
+                    type="checkbox"
+                    checked={tabViewCollapsed}
+                    onChange={(e) => {
+                      setTabViewCollapsed(e.target.checked);
+                      postMessage({ type: 'setTabSetting', key: 'tabViewCollapsed', value: e.target.checked });
+                    }}
+                  />
+                  Collapsed Tabs
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer px-2.5 py-1.5 hover:opacity-80">
+                  <input
+                    type="checkbox"
+                    checked={tabGrouping}
+                    onChange={(e) => {
+                      setTabGrouping(e.target.checked);
+                      postMessage({ type: 'setTabSetting', key: 'tabGrouping', value: e.target.checked });
+                    }}
+                  />
+                  Grouped Tabs
                 </label>
                 <div style={{ borderTop: '1px solid var(--vsc-border-visible)', margin: '2px 0' }} />
                 <button

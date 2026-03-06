@@ -182,3 +182,8 @@ body.vscode-high-contrast {
 /* === Transitions for interactive elements === */
 input, select, textarea, button { font-family: inherit; font-size: inherit; }
 button { border: none; }
+
+/* Group header close button */
+.group-header-close { opacity: 0; }
+*:hover > .group-header-close { opacity: 0.5; }
+.group-header-close:hover { opacity: 1 !important; }

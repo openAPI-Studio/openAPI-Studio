@@ -327,6 +327,12 @@ export class OpenPostPanel {
       case 'setCookiesEnabled':
         store.saveCookiesEnabled(msg.enabled);
         break;
+      case 'loadTabSettings':
+        this.postMessage({ type: 'tabSettings', data: store.loadTabSettings() });
+        break;
+      case 'setTabSetting':
+        store.saveTabSetting(msg.key, msg.value);
+        break;
       case 'exportCollection': {
         const { toPostmanFormat } = require('./collectionTree');
         const collections = store.loadCollections();

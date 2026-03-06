@@ -63,9 +63,35 @@ export function ResponseViewer() {
 
   if (!response) {
     return (
-      <div className="flex flex-col items-center justify-center h-full opacity-20 select-none gap-2">
-        <Zap size={28} />
-        <span className="text-xs">Enter a URL and hit Send</span>
+      <div className="flex flex-col gap-2.5" style={{ opacity: 0.25, pointerEvents: 'none', userSelect: 'none' }}>
+        <div className="flex flex-col gap-1.5 rounded-md px-3 py-2" style={{ background: 'var(--vsc-input-bg)' }}>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-wider font-semibold opacity-40">Response</span>
+          </div>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold" style={{ background: 'var(--vsc-badge-bg)', color: 'var(--vsc-badge-fg)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'currentColor', opacity: 0.25 }} />
+              0
+            </span>
+            <span className="flex items-center gap-1 text-[11px] opacity-50">
+              <Clock size={10} /> <span className="opacity-70">Time</span> <span className="font-medium">0 ms</span>
+            </span>
+            <span className="flex items-center gap-1 text-[11px] opacity-50">
+              <ArrowDownToLine size={10} /> <span className="opacity-70">Size</span> <span className="font-medium">0 B</span>
+            </span>
+          </div>
+        </div>
+        <div className="flex gap-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
+          {['body', 'headers', 'cookies', 'tests'].map((tab) => (
+            <span key={tab} className={tab === 'body' ? 'tab-btn-active' : 'tab-btn'}>{tab}</span>
+          ))}
+        </div>
+        <div className="rounded overflow-hidden" style={{ background: 'var(--vsc-input-bg)' }}>
+          <div className="flex flex-col items-center justify-center py-12 gap-2">
+            <Zap size={24} />
+            <span className="text-xs">Enter a URL and hit Send</span>
+          </div>
+        </div>
       </div>
     );
   }

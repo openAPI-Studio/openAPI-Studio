@@ -35,6 +35,8 @@ interface AppState {
   codePanelRatio: number;
   sslVerification: boolean;
   cookiesEnabled: boolean;
+  tabViewCollapsed: boolean;
+  tabGrouping: boolean;
   allCookies: CookieEntry[];
   toasts: Toast[];
   confirmDialog: ConfirmDialog | null;
@@ -57,6 +59,8 @@ interface AppState {
   setCodePanelRatio: (v: number) => void;
   setSslVerification: (v: boolean) => void;
   setCookiesEnabled: (v: boolean) => void;
+  setTabViewCollapsed: (v: boolean) => void;
+  setTabGrouping: (v: boolean) => void;
   setAllCookies: (c: CookieEntry[]) => void;
   addToast: (t: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
@@ -84,6 +88,8 @@ export const useAppStore = create<AppState>((set) => ({
   codePanelRatio: 0.5,
   sslVerification: true,
   cookiesEnabled: true,
+  tabViewCollapsed: false,
+  tabGrouping: false,
   allCookies: [],
   toasts: [],
   confirmDialog: null,
@@ -118,6 +124,8 @@ export const useAppStore = create<AppState>((set) => ({
   setCodePanelRatio: (codePanelRatio) => set({ codePanelRatio }),
   setSslVerification: (sslVerification) => set({ sslVerification }),
   setCookiesEnabled: (cookiesEnabled) => set({ cookiesEnabled }),
+  setTabViewCollapsed: (tabViewCollapsed) => set({ tabViewCollapsed }),
+  setTabGrouping: (tabGrouping) => set({ tabGrouping }),
   setAllCookies: (allCookies) => set({ allCookies }),
   addToast: (t) => {
     const id = Date.now().toString() + Math.random().toString(36).slice(2);

@@ -493,10 +493,15 @@ function RequestRow({ req, colId, folderPath, depth, confirmDelete, loadRequest,
   confirmDelete: (t: string, m: string, fn: () => void) => void; loadRequest: (r: ApiRequest, folderPath?: string[]) => void; addToast: (t: { type: 'success' | 'error' | 'info'; message: string }) => void;
 }) {
   const pl = 8 + depth * 16;
+  const tabs = useTabStore((s) => s.tabs);
+  const activeTabId = useTabStore((s) => s.activeTabId);
+  const matchingTab = tabs.find((t) => t.sourceRequestId === req.id);
+  const isActive = matchingTab?.id === activeTabId;
+  const bg = matchingTab ? (isActive ? 'var(--vsc-list-active)' : 'var(--vsc-list-hover)') : undefined;
   return (
     <div
-      className="flex items-center gap-2 pr-2 py-[5px] transition-colors hover:bg-[var(--vsc-list-hover)]"
-      style={{ paddingLeft: pl, borderBottom: '1px solid var(--vsc-border-visible)' }}
+      className={`flex items-center gap-2 pr-2 py-[5px] transition-colors ${!matchingTab ? 'hover:bg-[var(--vsc-list-hover)]' : ''}`}
+      style={{ paddingLeft: pl, borderBottom: '1px solid var(--vsc-border-visible)', background: bg }}
     >
       <button className="flex items-center gap-2 flex-1 min-w-0 text-left text-[11px]" onClick={() => loadRequest(req, folderPath.length ? folderPath : undefined)}>
         <FileText size={12} className="shrink-0 opacity-30" />

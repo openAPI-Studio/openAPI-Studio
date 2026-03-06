@@ -148,7 +148,8 @@ export type MessageToWebview =
   | { type: 'history'; data: HistoryEntry[] }
   | { type: 'activeEnvironment'; id: string | null }
   | { type: 'filePicked'; purpose: string; filePath: string; fileName: string }
-  | { type: 'cookies'; data: CookieEntry[] };
+  | { type: 'cookies'; data: CookieEntry[] }
+  | { type: 'tabSettings'; data: { tabViewCollapsed: boolean; tabGrouping: boolean } };
 
 export type MessageToExtension =
   | { type: 'sendRequest'; data: ApiRequest; sslVerification?: boolean }
@@ -174,4 +175,6 @@ export type MessageToExtension =
   | { type: 'clearCookies' }
   | { type: 'setCookiesEnabled'; enabled: boolean }
   | { type: 'exportCollection'; collectionId: string }
-  | { type: 'importCollection' };
+  | { type: 'importCollection' }
+  | { type: 'loadTabSettings' }
+  | { type: 'setTabSetting'; key: 'tabViewCollapsed' | 'tabGrouping'; value: boolean };
