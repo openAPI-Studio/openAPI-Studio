@@ -5,6 +5,7 @@ import { OpenPostPanel } from './services/webviewProvider';
 import { CollectionTreeProvider } from './services/collectionTree';
 import { EnvironmentTreeProvider } from './services/environmentTree';
 import { HistoryTreeProvider } from './services/historyTree';
+import { SnapshotTreeProvider, SnapshotItem, SnapshotRecordItem } from './services/snapshotTree';
 import { ApiRequest } from './core/types';
 import { parseOpenApiSpec } from './core/openApiParser';
 import { loadCollections, saveCollections, loadEnvironments, saveEnvironments } from './storage/fileStore';
@@ -13,10 +14,12 @@ export function activate(context: vscode.ExtensionContext) {
   const collectionTree = new CollectionTreeProvider();
   const environmentTree = new EnvironmentTreeProvider();
   const historyTree = new HistoryTreeProvider();
+  const snapshotTree = new SnapshotTreeProvider();
 
   vscode.window.registerTreeDataProvider('openPost.collections', collectionTree);
   vscode.window.registerTreeDataProvider('openPost.environments', environmentTree);
   vscode.window.registerTreeDataProvider('openPost.history', historyTree);
+  vscode.window.registerTreeDataProvider('openPost.snapshots', snapshotTree);
 
   // Open webview
   context.subscriptions.push(
@@ -114,6 +117,28 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('openPost.clearHistory', () => {
       historyTree.clear();
     }),
+
+    // Snapshot commands
+    vscode.commands.registerCommand('openPost.openSnapshotRecord', (record) => {
+      OpenPostPanel.show(context.extensionUri);
+      setTimeout(() => {
+        OpenPostPanel.currentPanel?.sendToWebview({
+          type: 'loadRequest',
+          data: record.request,
+          collectionId: null,
+          response: record.response,
+        });
+      }, 300);
+    }),
+    vscode.commands.registerCommand('openPost.deleteSnapshot', (item: SnapshotItem) => {
+      snapshotTree.deleteSnapshot(item);
+    }),
+    vscode.commands.registerCommand('openPost.deleteSnapshotRecord', (item: SnapshotRecordItem) => {
+      snapshotTree.deleteSnapshotRecord(item);
+    }),
+    vscode.commands.registerCommand('openPost.renameSnapshot', (item: SnapshotItem) => {
+      snapshotTree.renameSnapshot(item);
+    }),
   );
 
   // Refresh trees when webview makes changes
@@ -121,6 +146,7 @@ export function activate(context: vscode.ExtensionContext) {
     collectionTree.refresh();
     environmentTree.refresh();
     historyTree.refresh();
+    snapshotTree.refresh();
   };
 }
 

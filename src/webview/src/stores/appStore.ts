@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ApiResponse, Environment, Collection, HistoryEntry, CookieEntry } from '../types/messages';
+import { ApiResponse, Environment, Collection, HistoryEntry, CookieEntry, Snapshot, SnapshotRecord } from '../types/messages';
 import { useTabStore } from './tabStore';
 
 export interface Toast {
@@ -26,7 +26,7 @@ interface AppState {
   history: HistoryEntry[];
   responseTab: 'body' | 'headers' | 'cookies' | 'tests';
   bodyViewMode: 'pretty' | 'raw' | 'tree';
-  sidebarTab: 'collections' | 'environments' | 'history';
+  sidebarTab: 'collections' | 'environments' | 'history' | 'snapshots';
   sidebarCollapsed: boolean;
   sidebarWidth: number;
   sidebarSearch: string;
@@ -40,6 +40,8 @@ interface AppState {
   allCookies: CookieEntry[];
   toasts: Toast[];
   confirmDialog: ConfirmDialog | null;
+  snapshots: Snapshot[];
+  viewedSnapshotRecord: { snapshotId: string; record: SnapshotRecord } | null;
   setResponse: (r: ApiResponse | null) => void;
   setViewedHistoryId: (id: string | null) => void;
   setLoading: (l: boolean) => void;
@@ -66,6 +68,8 @@ interface AppState {
   removeToast: (id: string) => void;
   showConfirm: (d: ConfirmDialog) => void;
   hideConfirm: () => void;
+  setSnapshots: (s: Snapshot[]) => void;
+  setViewedSnapshotRecord: (v: { snapshotId: string; record: SnapshotRecord } | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -93,6 +97,8 @@ export const useAppStore = create<AppState>((set) => ({
   allCookies: [],
   toasts: [],
   confirmDialog: null,
+  snapshots: [],
+  viewedSnapshotRecord: null,
   setResponse: (response) => {
     const { activeTabId, updateTab } = useTabStore.getState();
     updateTab(activeTabId, { response, error: null });
@@ -134,6 +140,8 @@ export const useAppStore = create<AppState>((set) => ({
   removeToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
   showConfirm: (confirmDialog) => set({ confirmDialog }),
   hideConfirm: () => set({ confirmDialog: null }),
+  setSnapshots: (snapshots) => set({ snapshots }),
+  setViewedSnapshotRecord: (viewedSnapshotRecord) => set({ viewedSnapshotRecord }),
 }));
 
 // Sync response/loading/error from active tab when tab changes

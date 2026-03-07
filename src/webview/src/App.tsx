@@ -74,6 +74,9 @@ export default function App() {
         case 'history':
           setHistory(m.data as ReturnType<typeof useAppStore.getState>['history']);
           break;
+        case 'snapshots':
+          useAppStore.getState().setSnapshots(m.data as ReturnType<typeof useAppStore.getState>['snapshots']);
+          break;
         case 'loadRequest': {
           const msg2 = m as { data: ApiRequest; collectionId?: string | null; response?: ApiResponse | null };
           useTabStore.getState().openRequest(
@@ -101,6 +104,7 @@ export default function App() {
     postMessage({ type: 'loadHistory' });
     postMessage({ type: 'loadCookies' });
     postMessage({ type: 'loadTabSettings' });
+    postMessage({ type: 'loadSnapshots' });
   }, []);
 
   return (

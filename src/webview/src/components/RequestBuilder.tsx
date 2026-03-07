@@ -3,7 +3,7 @@ import { useRequestStore } from '../stores/requestStore';
 import { useAppStore } from '../stores/appStore';
 import { postMessage, HttpMethod } from '../types/messages';
 import { parseCurl } from '../types/curlParser';
-import { Check, Save, ChevronDown, Pencil, Code, X } from 'lucide-react';
+import { Check, Save, ChevronDown, Pencil, Code, X, Bookmark } from 'lucide-react';
 import { KeyValueEditor } from './KeyValueEditor';
 import { BodyEditor } from './BodyEditor';
 import { AuthPanel } from './AuthPanel';
@@ -36,12 +36,17 @@ export function RequestBuilder() {
   const codePanelRatio = useAppStore((s) => s.codePanelRatio);
   const setCodePanelRatio = useAppStore((s) => s.setCodePanelRatio);
   const collections = useAppStore((s) => s.collections);
+  const snapshots = useAppStore((s) => s.snapshots);
   const [curlImported, setCurlImported] = React.useState(false);
   const [showSaveMenu, setShowSaveMenu] = React.useState(false);
   const [editingName, setEditingName] = React.useState(false);
   const [codeLang, setCodeLang] = React.useState<CodeLanguage>('curl');
   const [codePanelMode, setCodePanelMode] = React.useState<'code' | 'prompt'>('code');
   const [promptDialect, setPromptDialect] = React.useState<PromptDialect>('describe');
+  const [showSnapshotPanel, setShowSnapshotPanel] = React.useState(false);
+  const [snapshotMode, setSnapshotMode] = React.useState<'new' | 'add'>('new');
+  const [snapshotName, setSnapshotName] = React.useState('');
+  const [snapshotTargetId, setSnapshotTargetId] = React.useState('');
 
   const hasSource = !!(sourceRequestId && sourceCollectionId);
 
@@ -91,6 +96,27 @@ export function RequestBuilder() {
     postMessage({ type: 'saveRequest', data: { collectionId, request: req } });
     addToast({ type: 'success', message: 'Saved to collection' });
     setShowSaveMenu(false);
+  };
+
+  const saveSnapshot = () => {
+    const req = toApiRequest();
+    postMessage({ type: 'saveSnapshot', name: snapshotName.trim() || undefined, baseRequest: req });
+    addToast({ type: 'success', message: 'Snapshot contract saved' });
+    setSnapshotName('');
+    setShowSnapshotPanel(false);
+  };
+
+  const addToSnapshot = () => {
+    if (!snapshotTargetId) { return; }
+    const req = toApiRequest();
+    const latestResponse = useAppStore.getState().response;
+    if (!latestResponse) {
+      addToast({ type: 'error', message: 'Send a request first to record a response' });
+      return;
+    }
+    postMessage({ type: 'addSnapshotRecord', snapshotId: snapshotTargetId, request: req, response: latestResponse });
+    addToast({ type: 'success', message: 'Record added to snapshot' });
+    setShowSnapshotPanel(false);
   };
 
   const tabs = ['params', 'headers', 'body', 'auth', 'tests', 'scripts'] as const;
@@ -150,6 +176,72 @@ export function RequestBuilder() {
                         {col.name}
                       </button>
                     ))
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          {/* Snapshot button */}
+          <div className="relative">
+            <button
+              onClick={() => { setShowSnapshotPanel(!showSnapshotPanel); setSnapshotMode('new'); setSnapshotName(''); setSnapshotTargetId(snapshots[0]?.id || ''); }}
+              className="btn-secondary shrink-0 p-1.5"
+              title="Save snapshot contract"
+            >
+              <Bookmark size={13} />
+            </button>
+            {showSnapshotPanel && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowSnapshotPanel(false)} />
+                <div
+                  className="absolute right-0 top-full mt-1 z-50 rounded shadow-vsc p-3 min-w-[240px] flex flex-col gap-2"
+                  style={{ background: 'var(--vsc-dropdown-bg)', border: '1px solid var(--vsc-dropdown-border)' }}
+                >
+                  <p className="text-[11px] font-semibold opacity-70">Snapshot</p>
+                  {/* Mode toggle */}
+                  <div className="flex gap-1">
+                    <button
+                      className={`flex-1 text-[11px] py-1 rounded ${snapshotMode === 'new' ? 'btn-primary' : 'btn-secondary'}`}
+                      onClick={() => setSnapshotMode('new')}
+                    >New Contract</button>
+                    <button
+                      className={`flex-1 text-[11px] py-1 rounded ${snapshotMode === 'add' ? 'btn-primary' : 'btn-secondary'}`}
+                      onClick={() => setSnapshotMode('add')}
+                    >Add Record</button>
+                  </div>
+                  {snapshotMode === 'new' ? (
+                    <>
+                      <input
+                        className="input-field text-[11px] py-1"
+                        placeholder={`${name || method + ' ' + url} ${new Date().toLocaleString()}`}
+                        value={snapshotName}
+                        onChange={(e) => setSnapshotName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') saveSnapshot(); }}
+                        autoFocus
+                      />
+                      <p className="text-[10px] opacity-40">Leave blank to use default name</p>
+                      <button className="btn-primary text-[11px] py-1" onClick={saveSnapshot}>Save Contract</button>
+                    </>
+                  ) : (
+                    <>
+                      {snapshots.length === 0 ? (
+                        <p className="text-[11px] opacity-40 py-1">No snapshots yet — create one first</p>
+                      ) : (
+                        <>
+                          <select
+                            className="select-field text-[11px] py-1"
+                            value={snapshotTargetId}
+                            onChange={(e) => setSnapshotTargetId(e.target.value)}
+                          >
+                            {snapshots.map(s => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
+                          <p className="text-[10px] opacity-40">Records the current request + last response</p>
+                          <button className="btn-primary text-[11px] py-1" onClick={addToSnapshot}>Add Record</button>
+                        </>
+                      )}
+                    </>
                   )}
                 </div>
               </>

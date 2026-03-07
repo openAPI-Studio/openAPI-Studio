@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { MessageToExtension, MessageToWebview, Collection, CollectionFolder, HistoryEntry, ApiRequest, CookieEntry } from '../core/types';
+import { MessageToExtension, MessageToWebview, Collection, CollectionFolder, HistoryEntry, ApiRequest, CookieEntry, Snapshot, SnapshotRecord } from '../core/types';
 import { executeRequest } from '../core/httpClient';
 import { applyAuth } from '../auth/authHandler';
 import { runScript } from '../scripting/sandbox';
@@ -333,6 +333,69 @@ export class OpenPostPanel {
       case 'setTabSetting':
         store.saveTabSetting(msg.key, msg.value);
         break;
+      case 'loadSnapshots':
+        this.postMessage({ type: 'snapshots', data: store.loadSnapshots() });
+        break;
+      case 'saveSnapshot': {
+        const snapshots = store.loadSnapshots();
+        const now = Date.now();
+        const defaultName = `${msg.baseRequest.name || msg.baseRequest.method + ' ' + msg.baseRequest.url} ${new Date(now).toLocaleString()}`;
+        const newSnapshot: Snapshot = {
+          id: now.toString() + Math.random().toString(36).slice(2),
+          name: (msg.name && msg.name.trim()) ? msg.name.trim() : defaultName,
+          createdAt: now,
+          baseRequest: msg.baseRequest,
+          records: [],
+        };
+        snapshots.push(newSnapshot);
+        store.saveSnapshots(snapshots);
+        this.postMessage({ type: 'snapshots', data: store.loadSnapshots() });
+        this.notifyDataChanged();
+        break;
+      }
+      case 'addSnapshotRecord': {
+        const snapshots = store.loadSnapshots();
+        const idx = snapshots.findIndex(s => s.id === msg.snapshotId);
+        if (idx >= 0) {
+          const record: SnapshotRecord = {
+            id: Date.now().toString() + Math.random().toString(36).slice(2),
+            timestamp: Date.now(),
+            request: msg.request,
+            response: msg.response,
+          };
+          snapshots[idx].records.push(record);
+          store.saveSnapshots(snapshots);
+          this.postMessage({ type: 'snapshots', data: store.loadSnapshots() });
+          this.notifyDataChanged();
+        }
+        break;
+      }
+      case 'deleteSnapshot': {
+        const snapshots = store.loadSnapshots().filter(s => s.id !== msg.id);
+        store.saveSnapshots(snapshots);
+        this.postMessage({ type: 'snapshots', data: snapshots });
+        this.notifyDataChanged();
+        break;
+      }
+      case 'deleteSnapshotRecord': {
+        const snapshots = store.loadSnapshots().map(s => {
+          if (s.id !== msg.snapshotId) { return s; }
+          return { ...s, records: s.records.filter(r => r.id !== msg.recordId) };
+        });
+        store.saveSnapshots(snapshots);
+        this.postMessage({ type: 'snapshots', data: snapshots });
+        this.notifyDataChanged();
+        break;
+      }
+      case 'renameSnapshot': {
+        const snapshots = store.loadSnapshots().map(s =>
+          s.id === msg.id ? { ...s, name: msg.name } : s
+        );
+        store.saveSnapshots(snapshots);
+        this.postMessage({ type: 'snapshots', data: snapshots });
+        this.notifyDataChanged();
+        break;
+      }
       case 'exportCollection': {
         const { toPostmanFormat } = require('./collectionTree');
         const collections = store.loadCollections();

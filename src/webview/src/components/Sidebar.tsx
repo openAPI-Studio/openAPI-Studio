@@ -1,11 +1,11 @@
 import React from 'react';
 import { useAppStore } from '../stores/appStore';
 import { useTabStore } from '../stores/tabStore';
-import { postMessage, Environment, KeyValue, CollectionFolder, ApiRequest } from '../types/messages';
+import { postMessage, Environment, KeyValue, CollectionFolder, ApiRequest, Snapshot, SnapshotRecord } from '../types/messages';
 import { KeyValueEditor } from './KeyValueEditor';
-import { Trash2, PanelLeftClose, PanelLeftOpen, Search, FolderOpen, FolderPlus, FilePlus, Globe, Clock, ChevronRight, ChevronDown, FileText, Pencil, Folder, Download, Upload } from 'lucide-react';
+import { Trash2, PanelLeftClose, PanelLeftOpen, Search, FolderOpen, FolderPlus, FilePlus, Globe, Clock, ChevronRight, ChevronDown, FileText, Pencil, Folder, Download, Upload, Bookmark } from 'lucide-react';
 
-const tabIcons = { collections: FolderOpen, environments: Globe, history: Clock } as const;
+const tabIcons = { collections: FolderOpen, environments: Globe, history: Clock, snapshots: Bookmark } as const;
 
 const methodColor: Record<string, string> = {
   GET: '#61affe', POST: '#49cc90', PUT: '#fca130', PATCH: '#50e3c2', DELETE: '#f93e3e', HEAD: '#9012fe', OPTIONS: '#0d5aa7',
@@ -21,6 +21,7 @@ export function Sidebar() {
   const collections = useAppStore((s) => s.collections);
   const environments = useAppStore((s) => s.environments);
   const history = useAppStore((s) => s.history);
+  const snapshots = useAppStore((s) => s.snapshots);
   const openRequest = useTabStore((s) => s.openRequest);
 
   /** Open request in new tab, loading last response from history if available */
@@ -49,8 +50,9 @@ export function Sidebar() {
   const filteredCollections = collections.filter((c) => c.name.toLowerCase().includes(q) || c.requests.some((r) => r.name.toLowerCase().includes(q)));
   const filteredEnvironments = environments.filter((e) => e.name.toLowerCase().includes(q));
   const filteredHistory = history.filter((h) => h.request.url.toLowerCase().includes(q) || h.request.method.toLowerCase().includes(q));
+  const filteredSnapshots = snapshots.filter((s) => s.name.toLowerCase().includes(q) || s.baseRequest.url.toLowerCase().includes(q));
 
-  const counts = { collections: collections.length, environments: environments.length, history: history.length };
+  const counts = { collections: collections.length, environments: environments.length, history: history.length, snapshots: snapshots.length };
 
   const confirmDelete = (title: string, message: string, onConfirm: () => void) =>
     showConfirm({ title, message, onConfirm });
@@ -267,6 +269,16 @@ export function Sidebar() {
               </button>
             ))}
           </div>
+        )}
+
+        {/* ── Snapshots ── */}
+        {sidebarTab === 'snapshots' && (
+          <SnapshotsPanel
+            snapshots={filteredSnapshots}
+            onOpenRecord={(record) => openRequest(record.request, undefined, undefined, record.response)}
+            showConfirm={showConfirm}
+            addToast={addToast}
+          />
         )}
       </div>
     </div>
@@ -536,6 +548,144 @@ function InlineCreate({ type, depth, value, onChange, onSubmit, onCancel }: {
         onKeyDown={(e) => { if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); }}
         autoFocus
       />
+    </div>
+  );
+}
+
+/* ── Snapshots Panel ── */
+
+interface SnapshotsPanelProps {
+  snapshots: Snapshot[];
+  onOpenRecord: (record: SnapshotRecord) => void;
+  showConfirm: (d: { title: string; message: string; onConfirm: () => void }) => void;
+  addToast: (t: { type: 'success' | 'error' | 'info'; message: string }) => void;
+}
+
+function SnapshotsPanel({ snapshots, onOpenRecord, showConfirm, addToast }: SnapshotsPanelProps) {
+  const [expandedIds, setExpandedIds] = React.useState<Set<string>>(new Set());
+  const [renamingId, setRenamingId] = React.useState<string | null>(null);
+  const [renameValue, setRenameValue] = React.useState('');
+
+  const toggle = (id: string) => setExpandedIds(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const submitRename = (id: string) => {
+    if (!renameValue.trim()) { setRenamingId(null); return; }
+    postMessage({ type: 'renameSnapshot', id, name: renameValue.trim() });
+    addToast({ type: 'success', message: 'Snapshot renamed' });
+    setRenamingId(null);
+  };
+
+  if (snapshots.length === 0) {
+    return <p className="text-[11px] opacity-30 py-4 text-center">No snapshots yet</p>;
+  }
+
+  return (
+    <div className="flex flex-col">
+      {[...snapshots].sort((a, b) => b.createdAt - a.createdAt).map(snap => {
+        const open = expandedIds.has(snap.id);
+        return (
+          <div key={snap.id}>
+            {/* Snapshot header row */}
+            <div
+              className="flex items-center px-2 py-[6px] cursor-pointer transition-colors hover:bg-[var(--vsc-list-hover)]"
+              style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}
+            >
+              <button className="flex items-center gap-1.5 flex-1 min-w-0" onClick={() => toggle(snap.id)}>
+                {open ? <ChevronDown size={12} className="shrink-0 opacity-50" /> : <ChevronRight size={12} className="shrink-0 opacity-50" />}
+                <Bookmark size={12} className="shrink-0" style={{ color: 'var(--vsc-info)' }} />
+                {renamingId === snap.id ? (
+                  <input
+                    className="input-field text-[11px] py-0.5 flex-1 min-w-0"
+                    value={renameValue}
+                    autoFocus
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onBlur={() => submitRename(snap.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') submitRename(snap.id);
+                      if (e.key === 'Escape') setRenamingId(null);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <span className="text-[12px] font-medium truncate">{snap.name}</span>
+                )}
+                <span className="text-[10px] opacity-30 shrink-0 ml-0.5">{snap.records.length}</span>
+              </button>
+              <div className="flex items-center gap-0.5 shrink-0">
+                <button
+                  className="p-0.5 rounded transition-colors opacity-30 hover:opacity-80"
+                  title="Rename snapshot"
+                  onClick={(e) => { e.stopPropagation(); setRenamingId(snap.id); setRenameValue(snap.name); }}
+                ><Pencil size={11} /></button>
+                <button
+                  className="p-0.5 rounded transition-colors opacity-40 hover:opacity-100"
+                  style={{ color: 'var(--vsc-error)' }}
+                  title="Delete snapshot"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    showConfirm({ title: 'Delete Snapshot', message: `Delete "${snap.name}" and all ${snap.records.length} records?`, onConfirm: () => {
+                      postMessage({ type: 'deleteSnapshot', id: snap.id });
+                      addToast({ type: 'info', message: `Snapshot "${snap.name}" deleted` });
+                    }});
+                  }}
+                ><Trash2 size={11} /></button>
+              </div>
+            </div>
+            {/* Snapshot meta */}
+            {open && (
+              <div>
+                <div className="px-4 py-1" style={{ background: 'var(--vsc-editor-bg)', borderBottom: '1px solid var(--vsc-border-visible)' }}>
+                  <p className="text-[10px] opacity-40">
+                    {snap.baseRequest.method} {snap.baseRequest.url.replace(/^https?:\/\//, '')} · Created {new Date(snap.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                {snap.records.length === 0 && (
+                  <p className="text-[11px] opacity-30 py-2 text-center">No records yet — add records from the request builder</p>
+                )}
+                {[...snap.records].sort((a, b) => b.timestamp - a.timestamp).map(record => (
+                  <button
+                    key={record.id}
+                    className="flex items-center gap-2 w-full text-left px-4 py-[5px] text-[11px] transition-colors hover:bg-[var(--vsc-list-hover)] group"
+                    style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}
+                    onClick={() => {
+                      useAppStore.getState().setViewedSnapshotRecord({ snapshotId: snap.id, record });
+                      onOpenRecord(record);
+                    }}
+                  >
+                    <span
+                      className="font-mono text-[10px] font-bold shrink-0 uppercase"
+                      style={{ color: methodColor[record.request.method] || 'var(--vsc-fg)' }}
+                    >{record.request.method}</span>
+                    <span
+                      className="shrink-0 text-[9px] text-center rounded px-1 py-px font-semibold"
+                      style={{
+                        color: '#000',
+                        background: record.response.status < 300 ? 'var(--vsc-success)' : record.response.status < 400 ? 'var(--vsc-warning)' : 'var(--vsc-error)',
+                      }}
+                    >{record.response.status}</span>
+                    <span className="truncate opacity-60">{record.request.url.replace(/^https?:\/\//, '')}</span>
+                    <span className="text-[10px] opacity-30 shrink-0 ml-auto">{new Date(record.timestamp).toLocaleTimeString()}</span>
+                    <button
+                      className="shrink-0 p-0.5 rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+                      style={{ color: 'var(--vsc-error)' }}
+                      title="Delete record"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        postMessage({ type: 'deleteSnapshotRecord', snapshotId: snap.id, recordId: record.id });
+                        addToast({ type: 'info', message: 'Record deleted' });
+                      }}
+                    ><Trash2 size={10} /></button>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

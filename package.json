@@ -96,6 +96,26 @@
         "command": "openPost.importOpenApi",
         "title": "Import OpenAPI / Swagger",
         "icon": "$(symbol-interface)"
+      },
+      {
+        "command": "openPost.deleteSnapshot",
+        "title": "Delete Snapshot",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "openPost.renameSnapshot",
+        "title": "Rename Snapshot",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "openPost.deleteSnapshotRecord",
+        "title": "Delete Record",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "openPost.openSnapshotRecord",
+        "title": "Open Record",
+        "icon": "$(go-to-file)"
       }
     ],
     "viewsContainers": {
@@ -120,6 +140,10 @@
         {
           "id": "openPost.history",
           "name": "History"
+        },
+        {
+          "id": "openPost.snapshots",
+          "name": "Snapshots"
         }
       ]
     },
@@ -153,6 +177,11 @@
           "command": "openPost.clearHistory",
           "when": "view == openPost.history",
           "group": "navigation"
+        },
+        {
+          "command": "openPost.open",
+          "when": "view == openPost.snapshots",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -184,6 +213,26 @@
           "command": "openPost.renameRequest",
           "when": "view == openPost.collections && viewItem == request",
           "group": "inline"
+        },
+        {
+          "command": "openPost.renameSnapshot",
+          "when": "view == openPost.snapshots && viewItem == snapshotItem",
+          "group": "inline"
+        },
+        {
+          "command": "openPost.deleteSnapshot",
+          "when": "view == openPost.snapshots && viewItem == snapshotItem",
+          "group": "inline"
+        },
+        {
+          "command": "openPost.deleteSnapshotRecord",
+          "when": "view == openPost.snapshots && viewItem == snapshotRecordItem",
+          "group": "inline"
+        },
+        {
+          "command": "openPost.openSnapshotRecord",
+          "when": "view == openPost.snapshots && viewItem == snapshotRecordItem",
+          "group": "inline"
         }
       ]
     },
@@ -209,11 +258,11 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
-    "esbuild": "^0.20.0",
+    "esbuild": "^0.27.3",
     "eslint": "^8.56.0",
     "prettier": "^3.2.0",
     "typescript": "^5.3.0",
-    "vitest": "^1.2.0"
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "js-yaml": "^4.1.1"

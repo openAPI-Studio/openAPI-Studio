@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Collection, Environment, HistoryEntry, CookieEntry } from '../core/types';
+import { Collection, Environment, HistoryEntry, CookieEntry, Snapshot } from '../core/types';
 
 function getStoragePath(): string | undefined {
   const folders = vscode.workspace.workspaceFolders;
@@ -130,4 +130,22 @@ export function saveTabSetting(key: 'tabViewCollapsed' | 'tabGrouping', value: b
   if (!dir) { return; }
   const config = readJson<Record<string, unknown>>(path.join(dir, 'config.json'), {});
   writeJson(path.join(dir, 'config.json'), { ...config, [key]: value });
+}
+
+// Snapshots
+export function loadSnapshots(): Snapshot[] {
+  const dir = getStoragePath();
+  if (!dir) { return []; }
+  return readJson(path.join(dir, 'snapshots.json'), []);
+}
+
+export function saveSnapshots(snapshots: Snapshot[]) {
+  const dir = getStoragePath();
+  if (!dir) { return; }
+  // Cap at 200 snapshots; cap each snapshot at 100 records
+  const trimmed = snapshots.slice(-200).map(s => ({
+    ...s,
+    records: s.records.slice(-100),
+  }));
+  writeJson(path.join(dir, 'snapshots.json'), trimmed);
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import { useAppStore } from '../stores/appStore';
 import { useRequestStore } from '../stores/requestStore';
 import { JsonTreeView } from './JsonTreeView';
-import { X, Zap, Copy, Clock, ArrowDownToLine, ChevronDown } from 'lucide-react';
+import { X, Zap, Copy, Clock, ArrowDownToLine, ChevronDown, Bookmark } from 'lucide-react';
 
 export function ResponseViewer() {
   const latestResponse = useAppStore((s) => s.response);
@@ -16,6 +16,9 @@ export function ResponseViewer() {
   const history = useAppStore((s) => s.history);
   const viewedHistoryId = useAppStore((s) => s.viewedHistoryId);
   const setViewedHistoryId = useAppStore((s) => s.setViewedHistoryId);
+  const snapshots = useAppStore((s) => s.snapshots);
+  const viewedSnapshotRecord = useAppStore((s) => s.viewedSnapshotRecord);
+  const setViewedSnapshotRecord = useAppStore((s) => s.setViewedSnapshotRecord);
   const url = useRequestStore((s) => s.url);
   const [showHistoryMenu, setShowHistoryMenu] = React.useState(false);
 
@@ -110,6 +113,27 @@ export function ResponseViewer() {
 
   return (
     <div className="flex flex-col gap-2.5">
+      {/* Snapshot record banner */}
+      {viewedSnapshotRecord && (() => {
+        const snap = snapshots.find(s => s.id === viewedSnapshotRecord.snapshotId);
+        if (!snap) return null;
+        return (
+          <div
+            className="flex items-center gap-2 px-2 py-1.5 rounded text-[11px]"
+            style={{ background: 'rgba(80,160,255,0.10)', border: '1px solid rgba(80,160,255,0.25)', color: 'var(--vsc-info)' }}
+          >
+            <Bookmark size={11} className="shrink-0" />
+            <span className="flex-1 truncate">
+              Viewing snapshot: <strong>{snap.name}</strong> &mdash; {new Date(viewedSnapshotRecord.record.timestamp).toLocaleString()}
+            </span>
+            <button
+              className="shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+              title="Clear snapshot view"
+              onClick={() => setViewedSnapshotRecord(null)}
+            ><X size={11} /></button>
+          </div>
+        );
+      })()}
       {/* Status bar */}
       <div className="flex flex-col gap-1.5 rounded-md px-3 py-2" style={{ background: 'var(--vsc-input-bg)' }}>
         <div className="flex items-center justify-between">

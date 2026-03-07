@@ -124,6 +124,21 @@ export interface HistoryEntry {
   response: ApiResponse;
 }
 
+export interface SnapshotRecord {
+  id: string;
+  timestamp: number;
+  request: ApiRequest;
+  response: ApiResponse;
+}
+
+export interface Snapshot {
+  id: string;
+  name: string;
+  createdAt: number;
+  baseRequest: ApiRequest;
+  records: SnapshotRecord[];
+}
+
 // VS Code webview API
 interface VsCodeApi {
   postMessage(msg: unknown): void;

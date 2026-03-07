@@ -139,6 +139,21 @@ export interface HistoryEntry {
   response: ApiResponse;
 }
 
+export interface SnapshotRecord {
+  id: string;
+  timestamp: number;
+  request: ApiRequest;
+  response: ApiResponse;
+}
+
+export interface Snapshot {
+  id: string;
+  name: string;
+  createdAt: number;
+  baseRequest: ApiRequest;
+  records: SnapshotRecord[];
+}
+
 // Extension <-> Webview message protocol
 export type MessageToWebview =
   | { type: 'response'; data: ApiResponse }
@@ -149,7 +164,8 @@ export type MessageToWebview =
   | { type: 'activeEnvironment'; id: string | null }
   | { type: 'filePicked'; purpose: string; filePath: string; fileName: string }
   | { type: 'cookies'; data: CookieEntry[] }
-  | { type: 'tabSettings'; data: { tabViewCollapsed: boolean; tabGrouping: boolean } };
+  | { type: 'tabSettings'; data: { tabViewCollapsed: boolean; tabGrouping: boolean } }
+  | { type: 'snapshots'; data: Snapshot[] };
 
 export type MessageToExtension =
   | { type: 'sendRequest'; data: ApiRequest; sslVerification?: boolean }
@@ -177,4 +193,10 @@ export type MessageToExtension =
   | { type: 'exportCollection'; collectionId: string }
   | { type: 'importCollection' }
   | { type: 'loadTabSettings' }
-  | { type: 'setTabSetting'; key: 'tabViewCollapsed' | 'tabGrouping'; value: boolean };
+  | { type: 'setTabSetting'; key: 'tabViewCollapsed' | 'tabGrouping'; value: boolean }
+  | { type: 'loadSnapshots' }
+  | { type: 'saveSnapshot'; name?: string; baseRequest: ApiRequest }
+  | { type: 'addSnapshotRecord'; snapshotId: string; request: ApiRequest; response: ApiResponse }
+  | { type: 'deleteSnapshot'; id: string }
+  | { type: 'deleteSnapshotRecord'; snapshotId: string; recordId: string }
+  | { type: 'renameSnapshot'; id: string; name: string };

@@ -34,3 +34,5 @@ PRD.txt
 coverage/
 # Docs
 PRD.txt
+
+*.vsix
