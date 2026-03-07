@@ -51,7 +51,14 @@ Organize requests into collections with collapsible tree navigation in the sideb
 - Raw body view
 - Collapsible JSON tree view
 - Response headers table
-- **History dropdown** — browse past responses for the current URL
+- **History dropdown** — browse or delete past responses for the current URL
+
+### 📚 History & Snapshots
+- **Automatic request history** — every send is stored locally in `.openpost/history.json`
+- **Per-entry history delete** — remove selected entries from the response dropdown or History sidebar
+- **Automatic snapshots for saved requests** — when a request is saved to a collection, a snapshot contract is created automatically
+- **Automatic snapshot records** — every subsequent send for that saved request is captured under its snapshot
+- **Manual snapshot tools** — add records or rename/delete snapshots from the bookmark menu and sidebars
 
 ### 💻 Code Export
 Generate ready-to-use code in **12 languages** from your current request:

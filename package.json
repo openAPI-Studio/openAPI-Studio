@@ -74,6 +74,11 @@
         "icon": "$(clear-all)"
       },
       {
+        "command": "openPost.deleteHistoryEntry",
+        "title": "Delete History Entry",
+        "icon": "$(trash)"
+      },
+      {
         "command": "openPost.renameRequest",
         "title": "Rename",
         "icon": "$(edit)"
@@ -212,6 +217,11 @@
         {
           "command": "openPost.renameRequest",
           "when": "view == openPost.collections && viewItem == request",
+          "group": "inline"
+        },
+        {
+          "command": "openPost.deleteHistoryEntry",
+          "when": "view == openPost.history && viewItem == historyItem",
           "group": "inline"
         },
         {

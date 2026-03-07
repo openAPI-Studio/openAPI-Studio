@@ -406,10 +406,16 @@ Every time you click Send, the request and its full response are saved automatic
 - Browse history in **Sidebar → History tab**
 - Each entry shows: method badge, URL, timestamp, response status
 - Click an entry to **replay** it — it loads into the request builder with all original fields
-- **Compare** — click the clock in the response viewer to diff two historical responses
+- **Compare / browse** — click the clock in the response viewer to open the per-URL history dropdown
+- **Delete selected history** — use the trash icon beside the response-panel history dropdown
+- **Delete a single history entry** — use the trash icon in the webview History sidebar or the VS Code History tree
 - **Clear History** — gear icon → "Clear All History" → confirm dialog wipes everything
 
 History is saved to `.openpost/history.json`. You may want to add this file to `.gitignore`.
+
+### When the response dropdown appears
+
+The history dropdown in the response panel appears as soon as the current request URL has at least one saved history entry. The menu is scoped to the exact URL string currently in the request editor.
 
 ---
 
@@ -645,7 +651,7 @@ Click the **⚙ gear icon** in the top bar of the Open Post panel.
 
 ## Snapshots
 
-Snapshots let you **save and revisit named API contracts** — a fixed `baseRequest` definition with an unlimited number of request/response records filed under it over time. Unlike Request History (which is a flat chronological log), a Snapshot is a named container you actively curate.
+Snapshots let you **save and revisit named API contracts** — a fixed `baseRequest` definition with request/response records filed under it over time. Unlike Request History (which is a flat chronological log), a Snapshot is a named container tied to a saved request.
 
 ### Key Concepts
 
@@ -655,15 +661,27 @@ Snapshots let you **save and revisit named API contracts** — a fixed `baseRequ
 | **Record** | A single saved request + response pair filed under a snapshot, timestamped at capture time |
 | **Contract name** | The snapshot's display name. Defaults to `{request name} {date-time}` if left blank |
 
+### Automatic Snapshotting
+
+Once a request is saved into a collection:
+
+1. Open Post automatically creates a snapshot contract for that saved request if it does not already exist.
+2. Every later **Send** for that same saved request automatically appends a new snapshot record.
+
+This matching is based on the saved request `id`, not only the URL, so edits to the saved request continue writing to the same snapshot.
+
 ### Creating a Snapshot Contract
 
 1. Build and configure a request in the request builder.
-2. Click the **bookmark (🔖) icon** in the save-button row (next to the save buttons).
-3. The snapshot panel opens. Stay on the **New Contract** tab.
-4. Optionally enter a custom name. Leave blank to use the default: `{request name} {current date-time}`.
-5. Click **Save Contract**.
+2. Save the request into a collection first.
+3. Click the **bookmark (🔖) icon** in the save-button row (next to the save buttons).
+4. The snapshot panel opens. Stay on the **New Contract** tab.
+5. Optionally enter a custom name. Leave blank to use the default: `{request name} {current date-time}`.
+6. Click **Save Contract**.
 
 The snapshot is immediately visible in the **Snapshots** sidebar tab and in the VS Code Activity Bar tree under the Snapshots view.
+
+If the request has not yet been saved into a collection, Open Post blocks manual snapshotting and prompts you to save the request first.
 
 ### Adding a Record to an Existing Snapshot
 
@@ -674,6 +692,8 @@ The snapshot is immediately visible in the **Snapshots** sidebar tab and in the 
 5. Click **Add Record**.
 
 This saves the current request and the most recent response as a new record under that snapshot.
+
+For saved requests, this manual step is optional because sending the request already auto-adds a record to its matching snapshot.
 
 ### Viewing Records
 
@@ -717,7 +737,7 @@ Older entries beyond these limits are trimmed automatically when new ones are sa
 
 | | Request History | Snapshots |
 |---|---|---|
-| **Populated by** | Automatically, every time you send a request | Manually, when you click the bookmark button |
-| **Organised by** | Time (flat list) | Named contract (you name it) |
-| **Purpose** | Quick lookup of any previous call | Curated contracts you want to keep and compare |
+| **Populated by** | Automatically, every time you send a request | Automatically for saved requests, plus manual bookmark actions |
+| **Organised by** | Time (flat list) | Saved request contract (`baseRequest.id`) |
+| **Purpose** | Quick lookup and replay of previous calls | Persistent contract tracking for saved endpoints |
 | **Limit** | 500 entries (trimmed automatically) | 200 snapshots × 100 records each |

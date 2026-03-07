@@ -154,6 +154,10 @@ export interface Snapshot {
   records: SnapshotRecord[];
 }
 
+export interface DeleteHistoryPayload {
+  id: string;
+}
+
 // Extension <-> Webview message protocol
 export type MessageToWebview =
   | { type: 'response'; data: ApiResponse }
@@ -185,6 +189,7 @@ export type MessageToExtension =
   | { type: 'runTestScript'; script: string; request: ApiRequest; response: ApiResponse }
   | { type: 'pickFile'; purpose: string }
   | { type: 'clearHistory' }
+  | { type: 'deleteHistory'; id: string }
   | { type: 'loadCookies' }
   | { type: 'saveCookie'; data: CookieEntry }
   | { type: 'deleteCookie'; domain: string; name: string; path: string }

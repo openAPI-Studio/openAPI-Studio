@@ -88,8 +88,9 @@ All messages are typed in `src/core/types.ts` and mirrored in `src/webview/src/t
 | `runTestScript` | `script, request, response` | Execute a test script |
 | `pickFile` | `purpose` | Open VS Code file picker |
 | `clearHistory` | — | Wipe all history |
+| `deleteHistory` | `id` | Remove a single history entry |
 | `loadSnapshots` | — | Request all snapshots data |
-| `saveSnapshot` | `name?, baseRequest` | Create a new named snapshot contract |
+| `saveSnapshot` | `name?, baseRequest` | Create or update a named snapshot contract |
 | `addSnapshotRecord` | `snapshotId, request, response` | Add a request/response record to a snapshot |
 | `deleteSnapshot` | `id` | Remove a snapshot and all its records |
 | `deleteSnapshotRecord` | `snapshotId, recordId` | Remove a single record from a snapshot |
@@ -156,6 +157,10 @@ webviewProvider.ts → handleMessage({ type: 'sendRequest' })
     │     logs appended to response body
     │
     ├─ store.saveHistory(...)            persist to .openpost/history.json
+    ├─ postMessage({ type: 'history' })  refresh history state in the webview
+    ├─ store.loadSnapshots()             find snapshot whose baseRequest.id matches request.id
+    ├─ store.saveSnapshots(...)          append automatic snapshot record for saved requests
+    ├─ postMessage({ type: 'snapshots' }) refresh snapshot state in the webview
     ├─ notifyDataChanged()               refresh all sidebar trees (including Snapshots)
     │
     ▼
@@ -211,6 +216,13 @@ If no workspace folder is open, all load functions return empty arrays and save 
 | `saveActiveEnvironmentId(id)` | `void` | Write active env ID |
 | `loadSnapshots()` | `Snapshot[]` | Read snapshots.json |
 | `saveSnapshots(data)` | `void` | Write snapshots.json (capped: 200 snapshots, 100 records each) |
+
+### Snapshot lifecycle
+
+- Saving a request into a collection auto-creates a snapshot contract if one does not already exist for that saved request `id`.
+- Sending that saved request auto-appends a `SnapshotRecord` to the matching snapshot.
+- Manual snapshot creation still exists, but the webview requires the request to be saved in a collection first.
+- Snapshot matching is by `baseRequest.id`, not by URL text, so renamed or edited saved requests continue writing to the same snapshot contract.
 
 ---
 

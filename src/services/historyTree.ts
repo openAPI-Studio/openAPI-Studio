@@ -13,6 +13,7 @@ class HistoryItem extends vscode.TreeItem {
     const url = entry.request.url.replace(/^https?:\/\//, '');
     super(`${entry.request.method} ${url}`, vscode.TreeItemCollapsibleState.None);
     this.description = `${entry.response.status} · ${entry.response.time}ms · ${time}`;
+    this.contextValue = 'historyItem';
     this.iconPath = new vscode.ThemeIcon(
       METHOD_ICONS[entry.request.method] || 'symbol-event',
       new vscode.ThemeColor(
@@ -43,6 +44,11 @@ export class HistoryTreeProvider implements vscode.TreeDataProvider<HistoryItem>
 
   clear() {
     saveHistory([]);
+    this.refresh();
+  }
+
+  deleteEntry(id: string) {
+    saveHistory(loadHistory().filter(entry => entry.id !== id));
     this.refresh();
   }
 }

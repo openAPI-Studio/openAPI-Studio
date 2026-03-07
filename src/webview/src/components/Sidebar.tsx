@@ -246,27 +246,40 @@ export function Sidebar() {
           <div className="flex flex-col">
             {filteredHistory.length === 0 && <p className="text-[11px] opacity-30 py-4 text-center">No history</p>}
             {[...filteredHistory].reverse().map((entry) => (
-              <button
+              <div
                 key={entry.id}
-                className="flex items-center gap-2 w-full text-left px-2 py-[6px] text-[11px] transition-colors hover:bg-[var(--vsc-list-hover)]"
+                className="flex items-center gap-2 w-full text-left px-2 py-[6px] text-[11px] transition-colors hover:bg-[var(--vsc-list-hover)] group"
                 style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}
-                onClick={() => {
-                  openRequest(entry.request, undefined, undefined, entry.response);
-                }}
               >
-                <span
-                  className="font-mono text-[10px] font-bold shrink-0 uppercase"
-                  style={{ color: methodColor[entry.request.method] || 'var(--vsc-fg)' }}
-                >{entry.request.method}</span>
-                <span
-                  className="shrink-0 text-[9px] text-center rounded px-1 py-px font-semibold"
-                  style={{
-                    color: '#000',
-                    background: entry.response.status < 300 ? 'var(--vsc-success)' : entry.response.status < 400 ? 'var(--vsc-warning)' : 'var(--vsc-error)',
+                <button
+                  className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                  onClick={() => {
+                    openRequest(entry.request, undefined, undefined, entry.response);
                   }}
-                >{entry.response.status}</span>
-                <span className="truncate opacity-60 text-[11px]">{entry.request.url.replace(/^https?:\/\//, '')}</span>
-              </button>
+                >
+                  <span
+                    className="font-mono text-[10px] font-bold shrink-0 uppercase"
+                    style={{ color: methodColor[entry.request.method] || 'var(--vsc-fg)' }}
+                  >{entry.request.method}</span>
+                  <span
+                    className="shrink-0 text-[9px] text-center rounded px-1 py-px font-semibold"
+                    style={{
+                      color: '#000',
+                      background: entry.response.status < 300 ? 'var(--vsc-success)' : entry.response.status < 400 ? 'var(--vsc-warning)' : 'var(--vsc-error)',
+                    }}
+                  >{entry.response.status}</span>
+                  <span className="truncate opacity-60 text-[11px]">{entry.request.url.replace(/^https?:\/\//, '')}</span>
+                </button>
+                <button
+                  className="shrink-0 p-0.5 rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+                  style={{ color: 'var(--vsc-error)' }}
+                  title="Delete history entry"
+                  onClick={() => {
+                    postMessage({ type: 'deleteHistory', id: entry.id });
+                    addToast({ type: 'info', message: 'History entry deleted' });
+                  }}
+                ><Trash2 size={10} /></button>
+              </div>
             ))}
           </div>
         )}

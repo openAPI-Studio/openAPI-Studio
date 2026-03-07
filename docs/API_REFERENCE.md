@@ -279,6 +279,7 @@ type MessageToExtension =
   | { type: 'runTestScript';        script: string; request: ApiRequest; response: ApiResponse }
   | { type: 'pickFile';             purpose: string }
   | { type: 'clearHistory' }
+  | { type: 'deleteHistory';        id: string }
   | { type: 'loadSnapshots' }
   | { type: 'saveSnapshot';         name?: string; baseRequest: ApiRequest }
   | { type: 'addSnapshotRecord';    snapshotId: string; request: ApiRequest; response: ApiResponse }
@@ -286,6 +287,13 @@ type MessageToExtension =
   | { type: 'deleteSnapshotRecord'; snapshotId: string; recordId: string }
   | { type: 'renameSnapshot';       id: string; name: string };
 ```
+
+### Snapshot behavior notes
+
+- `saveRequest` now has snapshot side effects: when a request is saved into a collection, the extension auto-creates a snapshot contract for that saved request if one does not already exist.
+- `sendRequest` also has snapshot side effects for saved requests: after history is written, a matching snapshot record is appended automatically when `request.id === snapshot.baseRequest.id`.
+- `saveSnapshot` now behaves like an upsert for a saved request: it updates the existing snapshot contract if one already exists for that request id.
+- `deleteHistory` removes a single entry from `.openpost/history.json` and the updated history array is pushed back to the webview immediately.
 
 ### Sending a Message from WebView
 
@@ -635,6 +643,8 @@ function saveSnapshots(data: Snapshot[]): void
 // Caps at 200 snapshots; each snapshot is capped at 100 records.
 // Older entries beyond these limits are trimmed on save.
 ```
+
+Implementation note: history is persisted on every send, then immediately reposted to the webview so response-history controls stay in sync without requiring a reload.
 
 All data is stored as pretty-printed JSON for readability and git diff–friendliness.
 

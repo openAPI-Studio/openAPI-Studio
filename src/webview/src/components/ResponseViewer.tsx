@@ -1,8 +1,9 @@
 import React from 'react';
 import { useAppStore } from '../stores/appStore';
 import { useRequestStore } from '../stores/requestStore';
+import { postMessage } from '../types/messages';
 import { JsonTreeView } from './JsonTreeView';
-import { X, Zap, Copy, Clock, ArrowDownToLine, ChevronDown, Bookmark } from 'lucide-react';
+import { X, Zap, Copy, Clock, ArrowDownToLine, ChevronDown, Bookmark, Trash2 } from 'lucide-react';
 
 export function ResponseViewer() {
   const latestResponse = useAppStore((s) => s.response);
@@ -111,6 +112,14 @@ export function ResponseViewer() {
     addToast({ type: 'info', message: 'Response copied to clipboard' });
   };
 
+  const deleteHistoryEntry = (entryId: string) => {
+    if (viewedHistoryId === entryId) {
+      setViewedHistoryId(null);
+    }
+    postMessage({ type: 'deleteHistory', id: entryId });
+    addToast({ type: 'info', message: 'History entry deleted' });
+  };
+
   return (
     <div className="flex flex-col gap-2.5">
       {/* Snapshot record banner */}
@@ -142,16 +151,25 @@ export function ResponseViewer() {
             <button onClick={copyBody} className="btn-ghost text-[11px] flex items-center gap-1 opacity-50 hover:opacity-100" title="Copy response body">
               <Copy size={11} /> Copy
             </button>
-            {urlHistory.length > 1 && (
+            {urlHistory.length > 0 && (
           <div className="relative">
-            <button
-              onClick={() => setShowHistoryMenu(!showHistoryMenu)}
-              className="btn-ghost text-[11px] flex items-center gap-1 opacity-50 hover:opacity-100"
-            >
-              <Clock size={10} />
-              {viewedEntry ? formatTime(viewedEntry.timestamp) : 'Latest'}
-              <ChevronDown size={9} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowHistoryMenu(!showHistoryMenu)}
+                className="btn-ghost text-[11px] flex items-center gap-1 opacity-50 hover:opacity-100"
+              >
+                <Clock size={10} />
+                {viewedEntry ? formatTime(viewedEntry.timestamp) : 'Latest'}
+                <ChevronDown size={9} />
+              </button>
+              <button
+                onClick={() => deleteHistoryEntry(viewedEntry?.id || urlHistory[0].id)}
+                className="btn-ghost text-[11px] flex items-center gap-1 opacity-40 hover:opacity-100"
+                title="Delete selected history"
+              >
+                <Trash2 size={10} />
+              </button>
+            </div>
             {showHistoryMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowHistoryMenu(false)} />
@@ -160,25 +178,36 @@ export function ResponseViewer() {
                   style={{ background: 'var(--vsc-dropdown-bg)', border: '1px solid var(--vsc-dropdown-border)' }}
                 >
                   {urlHistory.map((entry, i) => (
-                    <button
+                    <div
                       key={entry.id}
-                      className={`w-full text-left px-3 py-1.5 text-[11px] flex items-center gap-2 transition-colors hover:bg-vsc-list-hover ${entry.id === (viewedHistoryId || urlHistory[0]?.id) ? 'opacity-100' : 'opacity-60'}`}
-                      onClick={() => {
-                        setViewedHistoryId(i === 0 && !viewedHistoryId ? null : entry.id === urlHistory[0]?.id ? null : entry.id);
-                        setShowHistoryMenu(false);
-                      }}
+                      className={`w-full px-3 py-1.5 text-[11px] flex items-center gap-2 transition-colors hover:bg-vsc-list-hover ${entry.id === (viewedHistoryId || urlHistory[0]?.id) ? 'opacity-100' : 'opacity-60'}`}
                     >
-                      <span
-                        className="shrink-0 text-[10px] rounded px-1 font-medium"
-                        style={{
-                          color: '#000',
-                          background: entry.response.status < 300 ? 'var(--vsc-success)' : entry.response.status < 400 ? 'var(--vsc-warning)' : 'var(--vsc-error)',
+                      <button
+                        className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                        onClick={() => {
+                          setViewedHistoryId(i === 0 && !viewedHistoryId ? null : entry.id === urlHistory[0]?.id ? null : entry.id);
+                          setShowHistoryMenu(false);
                         }}
-                      >{entry.response.status}</span>
-                      <span>{formatTime(entry.timestamp)}</span>
-                      <span className="opacity-40 ml-auto">{entry.response.time}ms</span>
-                      {i === 0 && <span className="text-[9px] opacity-40">(latest)</span>}
-                    </button>
+                      >
+                        <span
+                          className="shrink-0 text-[10px] rounded px-1 font-medium"
+                          style={{
+                            color: '#000',
+                            background: entry.response.status < 300 ? 'var(--vsc-success)' : entry.response.status < 400 ? 'var(--vsc-warning)' : 'var(--vsc-error)',
+                          }}
+                        >{entry.response.status}</span>
+                        <span>{formatTime(entry.timestamp)}</span>
+                        <span className="opacity-40 ml-auto">{entry.response.time}ms</span>
+                        {i === 0 && <span className="text-[9px] opacity-40">(latest)</span>}
+                      </button>
+                      <button
+                        className="shrink-0 opacity-30 hover:opacity-100 transition-opacity"
+                        title="Delete history entry"
+                        onClick={() => deleteHistoryEntry(entry.id)}
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    </div>
                   ))}
                 </div>
               </>

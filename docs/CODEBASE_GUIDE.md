@@ -56,7 +56,7 @@ open-post/
 │   │   │                                Creates and manages the WebView panel.
 │   │   │                                handleMessage() is the central hub — every WebView
 │   │   │                                message routes through its switch statement.
-│   │   │                                Coordinates: auth → scripting → HTTP → history → response.
+│   │   │                                Coordinates: auth → scripting → HTTP → history → snapshots → response.
 │   │   │
 │   │   ├── collectionTree.ts         ← VS Code TreeDataProvider for the Collections sidebar.
 │   │   │                                Reads from fileStore, builds TreeItem objects.
@@ -69,6 +69,7 @@ open-post/
 │   │   └── historyTree.ts            ← VS Code TreeDataProvider for the History sidebar.
 │   │                                    Most recent entries at the top.
 │   │                                    clear() wipes history.json.
+│   │                                    deleteEntry() removes a single history item.
 │   │
 │   ├── storage/
 │   │   └── fileStore.ts              ← Read/write .openpost/*.json in the workspace root.
@@ -93,7 +94,7 @@ open-post/
 │           │
 │           ├── App.tsx               ← 🌳 REACT ROOT
 │           │                            Sets up the window 'message' listener for all extension → webview messages.
-│           │                            On mount: requests loadCollections + loadEnvironments + loadHistory.
+│           │                            On mount: requests loadCollections + loadEnvironments + loadHistory + loadSnapshots.
 │           │                            Renders: top bar, collapsible sidebar, ResizableSplit (request/response),
 │           │                            optional code/prompt panel, ToastContainer, ConfirmDialog.
 │           │
@@ -103,9 +104,11 @@ open-post/
 │           │   │                             cURL paste detection and import.
 │           │   │                             Send button → postMessage({ type: 'sendRequest' }).
 │           │   │                             Save dropdown → postMessage({ type: 'saveRequest' }).
+│           │   │                             Bookmark menu requires saved requests before manual snapshotting.
 │           │   │
 │           │   ├── ResponseViewer.tsx      ← Shows ApiResponse.
 │           │   │                             Status bar, body tab (pretty/raw/tree/preview), headers tab.
+│           │   │                             Per-URL history dropdown with single-entry delete.
 │           │   │                             Diff mode using viewedHistoryId from appStore.
 │           │   │                             Snapshot record banner using viewedSnapshotRecord from appStore.
 │           │   │
@@ -113,7 +116,7 @@ open-post/
 │           │   │                             Tab switcher: Collections | Environments | History | Snapshots.
 │           │   │                             Collection tree rendered as expandable folders.
 │           │   │                             Environment management UI.
-│           │   │                             History list.
+│           │   │                             History list with replay + delete.
 │           │   │                             SnapshotsPanel: collapsible snapshot rows with records,
 │           │   │                             inline rename, per-snapshot and per-record delete.
 │           │   │

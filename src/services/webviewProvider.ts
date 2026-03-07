@@ -21,6 +21,19 @@ function resolveFolder(col: Collection, folderPath?: string[]): { folders: Colle
   return current;
 }
 
+function createSnapshotName(request: ApiRequest, now: number): string {
+  return `${request.name || request.method + ' ' + request.url} ${new Date(now).toLocaleString()}`;
+}
+
+function createSnapshotRecord(request: ApiRequest, response: any): SnapshotRecord {
+  return {
+    id: Date.now().toString() + Math.random().toString(36).slice(2),
+    timestamp: Date.now(),
+    request,
+    response,
+  };
+}
+
 export class OpenPostPanel {
   public static currentPanel: OpenPostPanel | undefined;
   public static onDataChanged: (() => void) | undefined;
@@ -174,6 +187,20 @@ export class OpenPostPanel {
             response,
           });
           store.saveHistory(history);
+
+          const snapshots = store.loadSnapshots();
+          const snapshotIndex = snapshots.findIndex(s => s.baseRequest.id === request.id);
+          if (snapshotIndex >= 0) {
+            snapshots[snapshotIndex] = {
+              ...snapshots[snapshotIndex],
+              baseRequest: request,
+              records: [...snapshots[snapshotIndex].records, createSnapshotRecord(request, response)],
+            };
+            store.saveSnapshots(snapshots);
+            this.postMessage({ type: 'snapshots', data: store.loadSnapshots() });
+          }
+
+          this.postMessage({ type: 'history', data: store.loadHistory() });
           this.notifyDataChanged();
 
           this.postMessage({ type: 'response', data: response });
@@ -255,9 +282,29 @@ export class OpenPostPanel {
             if (existing >= 0) { parent.requests[existing] = msg.data.request; }
             else { parent.requests.push(msg.data.request); }
             store.saveCollections(collections);
+
+            const snapshots = store.loadSnapshots();
+            const snapshotIndex = snapshots.findIndex(s => s.baseRequest.id === msg.data.request.id);
+            if (snapshotIndex >= 0) {
+              snapshots[snapshotIndex] = {
+                ...snapshots[snapshotIndex],
+                baseRequest: msg.data.request,
+              };
+            } else {
+              const now = Date.now();
+              snapshots.push({
+                id: now.toString() + Math.random().toString(36).slice(2),
+                name: createSnapshotName(msg.data.request, now),
+                createdAt: now,
+                baseRequest: msg.data.request,
+                records: [],
+              });
+            }
+            store.saveSnapshots(snapshots);
           }
         }
         this.postMessage({ type: 'collections', data: collections });
+        this.postMessage({ type: 'snapshots', data: store.loadSnapshots() });
         this.notifyDataChanged();
         break;
       }
@@ -294,6 +341,13 @@ export class OpenPostPanel {
         this.postMessage({ type: 'history', data: [] });
         this.notifyDataChanged();
         break;
+      case 'deleteHistory': {
+        const history = store.loadHistory().filter(entry => entry.id !== msg.id);
+        store.saveHistory(history);
+        this.postMessage({ type: 'history', data: history });
+        this.notifyDataChanged();
+        break;
+      }
       case 'pickFile': {
         const uris = await vscode.window.showOpenDialog({ canSelectMany: false, openLabel: 'Select File' });
         if (uris && uris.length > 0) {
@@ -339,15 +393,23 @@ export class OpenPostPanel {
       case 'saveSnapshot': {
         const snapshots = store.loadSnapshots();
         const now = Date.now();
-        const defaultName = `${msg.baseRequest.name || msg.baseRequest.method + ' ' + msg.baseRequest.url} ${new Date(now).toLocaleString()}`;
-        const newSnapshot: Snapshot = {
-          id: now.toString() + Math.random().toString(36).slice(2),
-          name: (msg.name && msg.name.trim()) ? msg.name.trim() : defaultName,
-          createdAt: now,
-          baseRequest: msg.baseRequest,
-          records: [],
-        };
-        snapshots.push(newSnapshot);
+        const existingIndex = snapshots.findIndex(s => s.baseRequest.id === msg.baseRequest.id);
+        if (existingIndex >= 0) {
+          snapshots[existingIndex] = {
+            ...snapshots[existingIndex],
+            name: (msg.name && msg.name.trim()) ? msg.name.trim() : snapshots[existingIndex].name,
+            baseRequest: msg.baseRequest,
+          };
+        } else {
+          const newSnapshot: Snapshot = {
+            id: now.toString() + Math.random().toString(36).slice(2),
+            name: (msg.name && msg.name.trim()) ? msg.name.trim() : createSnapshotName(msg.baseRequest, now),
+            createdAt: now,
+            baseRequest: msg.baseRequest,
+            records: [],
+          };
+          snapshots.push(newSnapshot);
+        }
         store.saveSnapshots(snapshots);
         this.postMessage({ type: 'snapshots', data: store.loadSnapshots() });
         this.notifyDataChanged();
@@ -357,13 +419,7 @@ export class OpenPostPanel {
         const snapshots = store.loadSnapshots();
         const idx = snapshots.findIndex(s => s.id === msg.snapshotId);
         if (idx >= 0) {
-          const record: SnapshotRecord = {
-            id: Date.now().toString() + Math.random().toString(36).slice(2),
-            timestamp: Date.now(),
-            request: msg.request,
-            response: msg.response,
-          };
-          snapshots[idx].records.push(record);
+          snapshots[idx].records.push(createSnapshotRecord(msg.request, msg.response));
           store.saveSnapshots(snapshots);
           this.postMessage({ type: 'snapshots', data: store.loadSnapshots() });
           this.notifyDataChanged();

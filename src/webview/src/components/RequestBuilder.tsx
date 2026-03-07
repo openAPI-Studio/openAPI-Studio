@@ -25,7 +25,7 @@ const methodColors: Record<HttpMethod, string> = {
 export function RequestBuilder() {
   const {
     method, url, params, headers, activeTab, name, sourceRequestId, sourceCollectionId, sourceFolderPath,
-    setMethod, setUrl, setUrlRaw, setParams, setHeaders, setActiveTab, setBody, setAuth, setName, toApiRequest,
+    setMethod, setUrl, setUrlRaw, setParams, setHeaders, setActiveTab, setBody, setAuth, setName, toApiRequest, loadRequest,
   } = useRequestStore();
   const setLoading = useAppStore((s) => s.setLoading);
   const setResponse = useAppStore((s) => s.setResponse);
@@ -94,11 +94,17 @@ export function RequestBuilder() {
     const req = toApiRequest();
     req.id = Date.now().toString(); // new id for the copy
     postMessage({ type: 'saveRequest', data: { collectionId, request: req } });
+    loadRequest(req, collectionId, null);
     addToast({ type: 'success', message: 'Saved to collection' });
     setShowSaveMenu(false);
   };
 
   const saveSnapshot = () => {
+    if (!sourceCollectionId || !sourceRequestId) {
+      addToast({ type: 'error', message: 'Save this request to a collection before snapshotting' });
+      setShowSnapshotPanel(false);
+      return;
+    }
     const req = toApiRequest();
     postMessage({ type: 'saveSnapshot', name: snapshotName.trim() || undefined, baseRequest: req });
     addToast({ type: 'success', message: 'Snapshot contract saved' });
@@ -107,6 +113,11 @@ export function RequestBuilder() {
   };
 
   const addToSnapshot = () => {
+    if (!sourceCollectionId || !sourceRequestId) {
+      addToast({ type: 'error', message: 'Save this request to a collection before adding snapshot records' });
+      setShowSnapshotPanel(false);
+      return;
+    }
     if (!snapshotTargetId) { return; }
     const req = toApiRequest();
     const latestResponse = useAppStore.getState().response;

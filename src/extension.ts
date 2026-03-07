@@ -8,7 +8,7 @@ import { HistoryTreeProvider } from './services/historyTree';
 import { SnapshotTreeProvider, SnapshotItem, SnapshotRecordItem } from './services/snapshotTree';
 import { ApiRequest } from './core/types';
 import { parseOpenApiSpec } from './core/openApiParser';
-import { loadCollections, saveCollections, loadEnvironments, saveEnvironments } from './storage/fileStore';
+import { loadCollections, saveCollections, loadEnvironments, saveEnvironments, loadHistory, loadSnapshots } from './storage/fileStore';
 
 export function activate(context: vscode.ExtensionContext) {
   const collectionTree = new CollectionTreeProvider();
@@ -116,6 +116,11 @@ export function activate(context: vscode.ExtensionContext) {
     // History commands
     vscode.commands.registerCommand('openPost.clearHistory', () => {
       historyTree.clear();
+      OpenPostPanel.currentPanel?.sendToWebview({ type: 'history', data: loadHistory() });
+    }),
+    vscode.commands.registerCommand('openPost.deleteHistoryEntry', (item) => {
+      historyTree.deleteEntry(item.entry.id);
+      OpenPostPanel.currentPanel?.sendToWebview({ type: 'history', data: loadHistory() });
     }),
 
     // Snapshot commands
@@ -132,12 +137,15 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand('openPost.deleteSnapshot', (item: SnapshotItem) => {
       snapshotTree.deleteSnapshot(item);
+      OpenPostPanel.currentPanel?.sendToWebview({ type: 'snapshots', data: loadSnapshots() });
     }),
     vscode.commands.registerCommand('openPost.deleteSnapshotRecord', (item: SnapshotRecordItem) => {
       snapshotTree.deleteSnapshotRecord(item);
+      OpenPostPanel.currentPanel?.sendToWebview({ type: 'snapshots', data: loadSnapshots() });
     }),
     vscode.commands.registerCommand('openPost.renameSnapshot', (item: SnapshotItem) => {
       snapshotTree.renameSnapshot(item);
+      OpenPostPanel.currentPanel?.sendToWebview({ type: 'snapshots', data: loadSnapshots() });
     }),
   );
 
