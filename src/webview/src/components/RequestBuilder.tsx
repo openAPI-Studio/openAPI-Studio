@@ -24,7 +24,7 @@ const methodColors: Record<HttpMethod, string> = {
 
 export function RequestBuilder() {
   const {
-    method, url, params, headers, activeTab, name, sourceRequestId, sourceCollectionId, sourceFolderPath,
+    method, url, params, headers, activeTab, name, sourceRequestId, sourceCollectionId, sourceFolderPath, sourceScope,
     setMethod, setUrl, setUrlRaw, setParams, setHeaders, setActiveTab, setBody, setAuth, setName, toApiRequest, loadRequest,
   } = useRequestStore();
   const setLoading = useAppStore((s) => s.setLoading);
@@ -87,7 +87,7 @@ export function RequestBuilder() {
   const saveUpdate = () => {
     if (!sourceCollectionId) return;
     const req = toApiRequest();
-    postMessage({ type: 'saveRequest', data: { collectionId: sourceCollectionId, folderPath: sourceFolderPath || undefined, request: req } });
+    postMessage({ type: sourceScope === 'global' ? 'saveGlobalRequest' : 'saveRequest', data: { collectionId: sourceCollectionId, folderPath: sourceFolderPath || undefined, request: req } });
     addToast({ type: 'success', message: 'Request updated' });
   };
 

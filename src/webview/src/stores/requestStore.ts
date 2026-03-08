@@ -56,6 +56,7 @@ export interface RequestState {
   readonly sourceRequestId: string | null;
   readonly sourceCollectionId: string | null;
   readonly sourceFolderPath: string[] | null;
+  readonly sourceScope: 'local' | 'global';
   setMethod: (m: HttpMethod) => void;
   setUrl: (u: string) => void;
   setUrlRaw: (u: string) => void;
@@ -96,6 +97,7 @@ export const useRequestStore = create<RequestState>((set, get) => {
       sourceRequestId: tab.sourceRequestId,
       sourceCollectionId: tab.sourceCollectionId,
       sourceFolderPath: tab.sourceFolderPath,
+      sourceScope: tab.sourceScope,
     });
   };
 
@@ -119,6 +121,7 @@ export const useRequestStore = create<RequestState>((set, get) => {
     sourceRequestId: tab.sourceRequestId,
     sourceCollectionId: tab.sourceCollectionId,
     sourceFolderPath: tab.sourceFolderPath,
+    sourceScope: tab.sourceScope,
 
     setMethod: (method) => { patchActive({ method }); set({ method }); },
     setUrl: (url) => {
@@ -176,6 +179,7 @@ export const useRequestStore = create<RequestState>((set, get) => {
         sourceRequestId: r.id || null,
         sourceCollectionId: collectionId ?? null,
         sourceFolderPath: folderPath ?? null,
+        sourceScope: 'local' as const,
       };
       patchActive(patch);
       set(patch);
@@ -197,6 +201,7 @@ export const useRequestStore = create<RequestState>((set, get) => {
         sourceRequestId: null,
         sourceCollectionId: null,
         sourceFolderPath: null,
+        sourceScope: 'local' as const,
       };
       patchActive(patch);
       set(patch);

@@ -18,6 +18,7 @@ export interface Tab {
   sourceRequestId: string | null;
   sourceCollectionId: string | null;
   sourceFolderPath: string[] | null;
+  sourceScope: 'local' | 'global';
   response: ApiResponse | null;
   error: string | null;
   loading: boolean;
@@ -56,6 +57,7 @@ function newTab(id?: string): Tab {
     sourceRequestId: null,
     sourceCollectionId: null,
     sourceFolderPath: null,
+    sourceScope: 'local',
     response: null,
     error: null,
     loading: false,
@@ -71,7 +73,7 @@ interface TabStore {
   closeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
   updateTab: (id: string, patch: Partial<Tab>) => void;
-  openRequest: (r: ApiRequest, collectionId?: string | null, folderPath?: string[] | null, response?: ApiResponse | null) => void;
+  openRequest: (r: ApiRequest, collectionId?: string | null, folderPath?: string[] | null, response?: ApiResponse | null, scope?: 'local' | 'global') => void;
   getActiveTab: () => Tab;
   createGroup: (name?: string) => string;
   renameGroup: (id: string, name: string) => void;
@@ -123,7 +125,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
     tabs: s.tabs.map((t) => t.id === id ? { ...t, ...patch } : t),
   })),
 
-  openRequest: (r, collectionId, folderPath, response) => {
+  openRequest: (r, collectionId, folderPath, response, scope) => {
     const { tabs } = get();
     const existing = tabs.find((t) => t.sourceRequestId && t.sourceRequestId === r.id);
     if (existing) {
@@ -145,6 +147,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
     tab.sourceRequestId = r.id || null;
     tab.sourceCollectionId = collectionId ?? null;
     tab.sourceFolderPath = folderPath ?? null;
+    tab.sourceScope = scope || 'local';
     tab.response = response ?? null;
     set((s) => ({ tabs: [...s.tabs, tab], activeTabId: tab.id }));
   },
