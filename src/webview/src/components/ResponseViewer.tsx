@@ -3,7 +3,154 @@ import { useAppStore } from '../stores/appStore';
 import { useRequestStore } from '../stores/requestStore';
 import { postMessage, Snapshot } from '../types/messages';
 import { JsonTreeView } from './JsonTreeView';
-import { X, Zap, Copy, Clock, ArrowDownToLine, ChevronDown, Bookmark, Trash2 } from 'lucide-react';
+import { X, Zap, Copy, Clock, ArrowDownToLine, ChevronDown, ChevronRight, Bookmark, Trash2 } from 'lucide-react';
+
+function log(level: 'info' | 'warn' | 'error', message: string, data?: unknown) {
+  postMessage({ type: 'log', level, message, data: data !== undefined ? String(data).slice(0, 2000) : undefined });
+}
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
+  state: { error: Error | null } = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error) { log('error', 'ResponseBody crash', error.message + '\n' + error.stack); }
+  render() {
+    if (this.state.error) return (
+      <div className="p-3 text-[11px] font-mono" style={{ color: 'var(--vsc-error)' }}>
+        <div className="font-semibold mb-1">Render error:</div>
+        <pre className="whitespace-pre-wrap opacity-70">{this.state.error.message}{'\n'}{this.state.error.stack}</pre>
+        <button className="mt-2 btn-ghost text-[10px] opacity-60 hover:opacity-100" onClick={() => this.setState({ error: null })}>Retry</button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
+type Lang = 'json' | 'xml' | 'html' | 'javascript' | 'css' | 'text';
+const LANGS: Lang[] = ['json', 'xml', 'html', 'javascript', 'css', 'text'];
+
+function detectLang(ct: string, body: string): Lang {
+  const c = (ct || '').toLowerCase();
+  if (c.includes('json')) return 'json';
+  if (c.includes('xml')) return 'xml';
+  if (c.includes('html')) return 'html';
+  if (c.includes('javascript') || c.includes('ecmascript')) return 'javascript';
+  if (c.includes('css')) return 'css';
+  const t = body.trimStart();
+  if (t.startsWith('{') || t.startsWith('[')) return 'json';
+  if (t.startsWith('<!DOCTYPE html') || t.startsWith('<html')) return 'html';
+  if (t.startsWith('<?xml') || t.startsWith('<')) return 'xml';
+  return 'text';
+}
+
+function hlJson(line: string): React.ReactNode {
+  const p: React.ReactNode[] = [];
+  const re = /("(?:\\.|[^"\\])*")\s*(:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|(\btrue\b|\bfalse\b)|(\bnull\b)|([{}\[\],:])/g;
+  let l = 0, m: RegExpExecArray | null, guard = 0;
+  while ((m = re.exec(line)) !== null && guard++ < 500) {
+    if (m[0].length === 0) { re.lastIndex++; continue; }
+    if (m.index > l) p.push(line.slice(l, m.index));
+    if (m[1] && m[2]) { p.push(<span key={m.index} style={{ color: '#9cdcfe' }}>{m[1]}</span>); p.push(m[2]); }
+    else if (m[1]) p.push(<span key={m.index} style={{ color: '#ce9178' }}>{m[1]}</span>);
+    else if (m[3]) p.push(<span key={m.index} style={{ color: '#b5cea8' }}>{m[0]}</span>);
+    else if (m[4] || m[5]) p.push(<span key={m.index} style={{ color: '#569cd6' }}>{m[0]}</span>);
+    else p.push(<span key={m.index} style={{ color: '#808080' }}>{m[0]}</span>);
+    l = m.index + m[0].length;
+  }
+  if (l < line.length) p.push(line.slice(l));
+  return <>{p}</>;
+}
+
+function hlXml(line: string): React.ReactNode {
+  const p: React.ReactNode[] = [];
+  const re = /(<!--.*?-->)|(<\/?[\w:-]+)|(\/?>)|(\s[\w:-]+)(=)("[^"]*"|'[^']*')/g;
+  let l = 0, m: RegExpExecArray | null, guard = 0;
+  while ((m = re.exec(line)) !== null && guard++ < 500) {
+    if (m[0].length === 0) { re.lastIndex++; continue; }
+    if (m.index > l) p.push(line.slice(l, m.index));
+    if (m[1]) p.push(<span key={m.index} style={{ color: '#6a9955' }}>{m[0]}</span>);
+    else if (m[2]) p.push(<span key={m.index} style={{ color: '#569cd6' }}>{m[2]}</span>);
+    else if (m[3]) p.push(<span key={m.index} style={{ color: '#569cd6' }}>{m[3]}</span>);
+    else if (m[4]) { p.push(<span key={m.index} style={{ color: '#9cdcfe' }}>{m[4]}</span>); p.push(<span key={m.index+'e'} style={{ color: '#808080' }}>{m[5]}</span>); p.push(<span key={m.index+'v'} style={{ color: '#ce9178' }}>{m[6]}</span>); }
+    l = m.index + m[0].length;
+  }
+  if (l < line.length) p.push(line.slice(l));
+  return <>{p}</>;
+}
+
+const JS_KW = new Set(['const','let','var','if','else','return','function','true','false','null','undefined','typeof','new','this','for','while','of','in','class','import','export','from','async','await','try','catch','throw']);
+function hlJs(line: string): React.ReactNode {
+  const p: React.ReactNode[] = [];
+  const re = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(-?\b\d+(?:\.\d+)?\b)|(\/\/.*$)|(\b[a-zA-Z_$]\w*\b)|([{}()\[\];,.:=<>!&|?+\-*/])/g;
+  let l = 0, m: RegExpExecArray | null, guard = 0;
+  while ((m = re.exec(line)) !== null && guard++ < 500) {
+    if (m[0].length === 0) { re.lastIndex++; continue; }
+    if (m.index > l) p.push(line.slice(l, m.index));
+    if (m[1]) p.push(<span key={m.index} style={{ color: '#ce9178' }}>{m[0]}</span>);
+    else if (m[2]) p.push(<span key={m.index} style={{ color: '#b5cea8' }}>{m[0]}</span>);
+    else if (m[3]) p.push(<span key={m.index} style={{ color: '#6a9955' }}>{m[0]}</span>);
+    else if (m[4]) p.push(<span key={m.index} style={{ color: JS_KW.has(m[4]) ? '#c586c0' : '#9cdcfe' }}>{m[0]}</span>);
+    else p.push(<span key={m.index} style={{ color: '#808080' }}>{m[0]}</span>);
+    l = m.index + m[0].length;
+  }
+  if (l < line.length) p.push(line.slice(l));
+  return <>{p}</>;
+}
+
+function hlCss(line: string): React.ReactNode {
+  const p: React.ReactNode[] = [];
+  const re = /(\/\*.*?\*\/)|([.#@]?[\w-]+)(\s*\{)|([\w-]+)(\s*:)|([{};\)])/g;
+  let l = 0, m: RegExpExecArray | null, guard = 0;
+  while ((m = re.exec(line)) !== null && guard++ < 500) {
+    if (m[0].length === 0) { re.lastIndex++; continue; }
+    if (m.index > l) p.push(line.slice(l, m.index));
+    if (m[1]) p.push(<span key={m.index} style={{ color: '#6a9955' }}>{m[0]}</span>);
+    else if (m[2]) { p.push(<span key={m.index} style={{ color: '#d7ba7d' }}>{m[2]}</span>); p.push(<span key={m.index+'b'} style={{ color: '#808080' }}>{m[3]}</span>); }
+    else if (m[4]) { p.push(<span key={m.index} style={{ color: '#9cdcfe' }}>{m[4]}</span>); p.push(<span key={m.index+'c'} style={{ color: '#808080' }}>{m[5]}</span>); }
+    else p.push(<span key={m.index} style={{ color: '#808080' }}>{m[0]}</span>);
+    l = m.index + m[0].length;
+  }
+  if (l < line.length) p.push(line.slice(l));
+  return <>{p}</>;
+}
+
+function hl(line: string, lang: Lang): React.ReactNode {
+  try {
+    if (lang === 'json') return hlJson(line);
+    if (lang === 'xml' || lang === 'html') return hlXml(line);
+    if (lang === 'javascript') return hlJs(line);
+    if (lang === 'css') return hlCss(line);
+  } catch (_e) { log('error', 'hl() crash', `lang=${lang} line=${line.slice(0, 200)} err=${_e}`); }
+  return line;
+}
+
+function computeFolds(lines: string[], lang: Lang): Map<number, number> {
+  const ranges = new Map<number, number>();
+  if (lang === 'json' || lang === 'javascript') {
+    const stack: number[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const t = lines[i].trimEnd();
+      if (t.endsWith('{') || t.endsWith('[')) stack.push(i);
+      const s = lines[i].trimStart();
+      if ((s.startsWith('}') || s.startsWith(']')) && stack.length) {
+        const start = stack.pop()!;
+        if (i > start + 1) ranges.set(start, i);
+      }
+    }
+  } else if (lang === 'xml' || lang === 'html') {
+    const stack: { tag: string; line: number }[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const close = lines[i].match(/<\/([\w:-]+)/);
+      if (close && stack.length && stack[stack.length - 1].tag === close[1]) {
+        const s = stack.pop()!;
+        if (i > s.line + 1) ranges.set(s.line, i);
+      } else {
+        const open = lines[i].match(/<([\w:-]+)(?:\s|>)/);
+        if (open && !lines[i].includes('/>')) stack.push({ tag: open[1], line: i });
+      }
+    }
+  }
+  return ranges;
+}
 
 export function ResponseViewer() {
   const latestResponse = useAppStore((s) => s.response);
@@ -24,6 +171,13 @@ export function ResponseViewer() {
   const sourceRequestId = useRequestStore((s) => s.sourceRequestId);
   const [showHistoryMenu, setShowHistoryMenu] = React.useState(false);
   const [selectedContractStatus, setSelectedContractStatus] = React.useState<number | null>(null);
+
+  const ct = (latestResponse?.headers?.['content-type'] || '');
+  const bodyText = latestResponse?.body || '';
+  const detectedLang = React.useMemo(() => detectLang(ct, bodyText), [ct, bodyText]);
+  const [langOverride, setLangOverride] = React.useState<{ lang: Lang; ct: string } | null>(null);
+  const lang = (langOverride && langOverride.ct === ct) ? langOverride.lang : detectedLang;
+  const setLang = (l: Lang) => setLangOverride({ lang: l, ct });
 
   // Filter history for current URL
   const urlHistory = React.useMemo(
@@ -392,7 +546,7 @@ export function ResponseViewer() {
       <div className="rounded overflow-hidden" style={{ background: 'var(--vsc-input-bg)' }}>
         {responseTab === 'body' && (
           <div>
-            <div className="flex gap-1 px-2.5 pt-2 pb-1">
+            <div className="flex items-center gap-1 px-2.5 pt-2 pb-1">
               {(['pretty', 'raw', ...(parsedJson ? ['tree'] : [])] as string[]).map((mode) => (
                 <button
                   key={mode}
@@ -403,25 +557,20 @@ export function ResponseViewer() {
                   {mode}
                 </button>
               ))}
+              <div className="ml-auto">
+                <select className="select-field text-[10px] py-0.5 px-1.5" value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
+                  {LANGS.map((l) => <option key={l} value={l}>{l.toUpperCase()}</option>)}
+                </select>
+              </div>
             </div>
 
-            <div className="max-h-[500px] overflow-auto">
-              {bodyViewMode === 'pretty' && (
-                <pre className="px-2.5 pb-2.5 text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-all">
-                  {parsedJson ? <SyntaxColoredJson json={parsedJson} /> : response.body}
-                </pre>
-              )}
-              {bodyViewMode === 'raw' && (
-                <pre className="px-2.5 pb-2.5 text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-all opacity-60">
-                  {response.body}
-                </pre>
-              )}
-              {bodyViewMode === 'tree' && parsedJson !== null && (
-                <div className="px-2.5 pb-2.5 text-[11px] font-mono">
-                  <JsonTreeView data={parsedJson} />
-                </div>
-              )}
-            </div>
+            {bodyViewMode === 'pretty' && <ErrorBoundary><ResponseBody body={response.body} lang={lang} addToast={addToast} /></ErrorBoundary>}
+            {bodyViewMode === 'raw' && <ErrorBoundary><ResponseBody body={response.body} lang="text" addToast={addToast} /></ErrorBoundary>}
+            {bodyViewMode === 'tree' && parsedJson !== null && (
+              <div className="px-2.5 pb-2.5 text-[11px] font-mono max-h-[500px] overflow-auto">
+                <JsonTreeView data={parsedJson} />
+              </div>
+            )}
           </div>
         )}
 
@@ -516,29 +665,79 @@ export function ResponseViewer() {
   );
 }
 
-function SyntaxColoredJson({ json }: { json: unknown }) {
-  const text = JSON.stringify(json, null, 2);
-  const parts: React.ReactNode[] = [];
-  const regex = /("(?:\\.|[^"\\])*")\s*(:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|(\btrue\b|\bfalse\b)|(\bnull\b)/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
+function ResponseBody({ body, lang, addToast }: { body: string; lang: Lang; addToast: (t: { type: 'success' | 'error' | 'info'; message: string }) => void }) {
+  const [collapsed, setCollapsed] = React.useState<Set<number>>(new Set());
+  const formatted = React.useMemo(() => {
+    if (lang === 'json') { try { return JSON.stringify(JSON.parse(body), null, 2); } catch (_e) { /* ignore */ } }
+    return body;
+  }, [body, lang]);
+  const lines = React.useMemo(() => formatted.split('\n'), [formatted]);
+  const truncated = lines.length > 5000;
+  const cappedLines = React.useMemo(() => truncated ? lines.slice(0, 5000) : lines, [lines, truncated]);
+  const folds = React.useMemo(() => { try { return computeFolds(cappedLines, lang); } catch (_e) { log('error', 'computeFolds crash', String(_e)); return new Map<number, number>(); } }, [cappedLines, lang]);
 
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
-    if (match[1] && match[2]) {
-      parts.push(<span key={match.index} style={{ color: '#9cdcfe' }}>{match[1]}</span>);
-      parts.push(match[2]);
-    } else if (match[1]) {
-      parts.push(<span key={match.index} style={{ color: '#ce9178' }}>{match[1]}</span>);
-    } else if (match[3]) {
-      parts.push(<span key={match.index} style={{ color: '#b5cea8' }}>{match[3]}</span>);
-    } else if (match[4] || match[5]) {
-      parts.push(<span key={match.index} style={{ color: '#569cd6' }}>{match[0]}</span>);
+  const toggle = (i: number) => setCollapsed((p) => { const n = new Set(p); n.has(i) ? n.delete(i) : n.add(i); return n; });
+
+  const visible = React.useMemo(() => {
+    const out: { idx: number; line: string; foldable: boolean; folded: boolean }[] = [];
+    let skip = -1;
+    for (let i = 0; i < cappedLines.length; i++) {
+      if (i <= skip) continue;
+      const end = folds.get(i);
+      const isFolded = collapsed.has(i);
+      out.push({ idx: i, line: cappedLines[i], foldable: !!end, folded: isFolded });
+      if (isFolded && end) skip = end;
     }
-    lastIndex = match.index + match[0].length;
-  }
-  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
-  return <>{parts}</>;
+    return out;
+  }, [cappedLines, folds, collapsed]);
+
+  const highlighted = React.useMemo(() => {
+    if (lang === 'text') return null;
+    const map = new Map<number, React.ReactNode>();
+    for (const v of visible) {
+      map.set(v.idx, hl(v.line, lang));
+    }
+    return map;
+  }, [visible, lang]);
+
+  const gutterW = String(cappedLines.length).length * 8 + 16;
+
+  return (
+    <div className="max-h-[500px] overflow-auto relative">
+      <button
+        className="absolute top-1 right-2 z-10 btn-ghost text-[10px] flex items-center gap-1 opacity-30 hover:opacity-100"
+        onClick={() => { navigator.clipboard.writeText(body); addToast({ type: 'info', message: 'Copied' }); }}
+        title="Copy"
+      >
+        <Copy size={10} /> Copy
+      </button>
+      {truncated && (
+        <div className="px-2.5 py-1 text-[10px] opacity-50" style={{ background: 'rgba(255,200,0,0.08)' }}>
+          Showing first 5,000 of {lines.length.toLocaleString()} lines
+        </div>
+      )}
+      <pre className="text-[11px] font-mono leading-relaxed m-0 pb-2">
+        {visible.map((v) => (
+          <div key={v.idx} className="flex hover:bg-[rgba(255,255,255,0.02)]" style={{ minHeight: '1.4em' }}>
+            <span className="shrink-0 text-right pr-2 select-none inline-flex items-center justify-end" style={{ width: gutterW, color: 'var(--vsc-desc)', opacity: 0.35, fontSize: '10px' }}>
+              {v.foldable ? (
+                <span className="cursor-pointer inline-flex items-center" onClick={() => toggle(v.idx)}>
+                  {v.folded ? <ChevronRight size={9} /> : <ChevronDown size={9} />}
+                  {v.idx + 1}
+                </span>
+              ) : (
+                v.idx + 1
+              )}
+            </span>
+            <span className="flex-1 whitespace-pre-wrap break-all px-1">
+              {highlighted ? highlighted.get(v.idx) : v.line}
+              {v.folded && <span className="opacity-30 ml-1 cursor-pointer text-[10px] px-1 rounded" style={{ background: 'var(--vsc-badge-bg)' }} onClick={() => toggle(v.idx)}>…</span>}
+            </span>
+          </div>
+        ))}
+      </pre>
+    </div>
+  );
 }
 
 function formatSize(bytes: number): string {
