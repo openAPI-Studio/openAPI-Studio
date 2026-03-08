@@ -84,6 +84,7 @@ interface TabStore {
   addTabToNewGroup: (tabId: string) => void;
   reorderTab: (tabId: string, targetIdx: number, targetGroupId: string | null) => void;
   restoreSession: (data: { tabs: Tab[]; groups: TabGroup[]; activeTabId: string }) => void;
+  hydrateResponses: (history: { request: { url: string; method: string }; response: ApiResponse }[]) => void;
 }
 
 export function getSessionData(state: { tabs: Tab[]; groups: TabGroup[]; activeTabId: string }) {
@@ -229,4 +230,15 @@ export const useTabStore = create<TabStore>((set, get) => ({
     const tabs = data.tabs.map((t: any) => ({ ...t, response: null, error: null, loading: false }));
     set({ tabs, groups: data.groups || [], activeTabId: data.activeTabId || tabs[0].id });
   },
+
+  hydrateResponses: (history) => set((s) => {
+    let changed = false;
+    const tabs = s.tabs.map((t) => {
+      if (t.response || !t.url) return t;
+      const match = history.slice().reverse().find((h) => h.request.url === t.url && h.request.method === t.method);
+      if (match) { changed = true; return { ...t, response: match.response }; }
+      return t;
+    });
+    return changed ? { tabs } : s;
+  }),
 }));

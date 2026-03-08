@@ -105,6 +105,7 @@ export default function App() {
             break;
           case 'history':
             setHistory(m.data as ReturnType<typeof useAppStore.getState>['history']);
+            useTabStore.getState().hydrateResponses(m.data as any);
             break;
           case 'snapshots':
             useAppStore.getState().setSnapshots(m.data as ReturnType<typeof useAppStore.getState>['snapshots']);
@@ -154,6 +155,7 @@ export default function App() {
             break;
           case 'globalHistory':
             useAppStore.getState().setGlobalHistory(m.data as any);
+            useTabStore.getState().hydrateResponses(m.data as any);
             break;
           case 'globalActiveEnvironment':
             useAppStore.getState().setGlobalActiveEnvironmentId((m as any).id);
