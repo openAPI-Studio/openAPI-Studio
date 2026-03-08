@@ -75,7 +75,7 @@ All messages are typed in `src/core/types.ts` and mirrored in `src/webview/src/t
 | Message type | Payload | Description |
 |---|---|---|
 | `sendRequest` | `ApiRequest`, `sslVerification?` | Execute an HTTP request |
-| `saveRequest` | `{ collectionId, folderId?, request }` | Upsert a request into a collection |
+| `saveRequest` | `{ collectionId, folderId?, folderPath?, request }` | Upsert a request into a collection/folder |
 | `loadCollections` | — | Request all collections data |
 | `loadEnvironments` | — | Request all environments + active env |
 | `loadHistory` | — | Request all history entries |
@@ -84,6 +84,7 @@ All messages are typed in `src/core/types.ts` and mirrored in `src/webview/src/t
 | `setActiveEnvironment` | `id \| null` | Change the active environment |
 | `createCollection` | `name` | Create a new empty collection |
 | `deleteCollection` | `id` | Remove a collection |
+| `deleteRequest` | `collectionId, requestId, folderPath?` | Remove one saved endpoint and cascade-delete matching history (method + URL + name) |
 | `runPreRequestScript` | `script, request` | Execute a pre-request script |
 | `runTestScript` | `script, request, response` | Execute a test script |
 | `pickFile` | `purpose` | Open VS Code file picker |
@@ -95,6 +96,7 @@ All messages are typed in `src/core/types.ts` and mirrored in `src/webview/src/t
 | `deleteSnapshot` | `id` | Remove a snapshot and all its records |
 | `deleteSnapshotRecord` | `snapshotId, recordId` | Remove a single record from a snapshot |
 | `renameSnapshot` | `id, name` | Rename an existing snapshot |
+| `resolveContractVariantPrompt` | `promptId, save` | Confirm whether a newly detected response structure should be saved to contract |
 
 ### Extension → WebView (`MessageToWebview`)
 
@@ -108,6 +110,7 @@ All messages are typed in `src/core/types.ts` and mirrored in `src/webview/src/t
 | `history` | `HistoryEntry[]` | Full history array |
 | `filePicked` | `purpose, filePath, fileName` | Result of file picker |
 | `snapshots` | `Snapshot[]` | Full snapshots array (sent after any mutation or on `loadSnapshots`) |
+| `contractVariantPrompt` | `ContractVariantPrompt` | Prompt for saving a newly detected unique response structure |
 
 ### Special: Load Request
 

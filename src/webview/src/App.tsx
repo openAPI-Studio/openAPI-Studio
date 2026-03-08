@@ -13,6 +13,36 @@ import { useRequestStore } from './stores/requestStore';
 import { useTabStore } from './stores/tabStore';
 import { onMessage, postMessage, ApiRequest, ApiResponse, CookieEntry } from './types/messages';
 
+class WebviewErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; message: string }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: '' };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, message: error?.message || 'Unknown UI error' };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Open Post render crash', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-screen w-full flex items-center justify-center p-4" style={{ background: 'var(--vsc-editor-bg)', color: 'var(--vsc-foreground)' }}>
+          <div className="max-w-lg w-full rounded p-4" style={{ border: '1px solid var(--vsc-border-visible)', background: 'var(--vsc-input-bg)' }}>
+            <p className="text-sm font-semibold mb-2">Open Post UI recovered from a runtime error</p>
+            <p className="text-xs opacity-70 mb-3">{this.state.message}</p>
+            <p className="text-xs opacity-70">Close and reopen the Open Post panel, or run <strong>Developer: Reload Window</strong>.</p>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const setResponse = useAppStore((s) => s.setResponse);
   const setLoading = useAppStore((s) => s.setLoading);
@@ -22,6 +52,7 @@ export default function App() {
   const setCollections = useAppStore((s) => s.setCollections);
   const setHistory = useAppStore((s) => s.setHistory);
   const addToast = useAppStore((s) => s.addToast);
+  const showConfirm = useAppStore((s) => s.showConfirm);
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
   const sidebarWidth = useAppStore((s) => s.sidebarWidth);
   const setSidebarWidth = useAppStore((s) => s.setSidebarWidth);
@@ -50,52 +81,76 @@ export default function App() {
 
   useEffect(() => {
     onMessage((msg: unknown) => {
-      const m = msg as { type: string; data?: unknown; message?: string; id?: string | null };
-      switch (m.type) {
-        case 'response':
-          setLoading(false);
-          setResponse(m.data as ReturnType<typeof useAppStore.getState>['response']);
-          addToast({ type: 'success', message: 'Request completed' });
-          break;
-        case 'error':
-          setLoading(false);
-          setError(m.message || 'Unknown error');
-          addToast({ type: 'error', message: m.message || 'Request failed' });
-          break;
-        case 'environments':
-          setEnvironments(m.data as ReturnType<typeof useAppStore.getState>['environments']);
-          break;
-        case 'activeEnvironment':
-          setActiveEnvironmentId((m.id as string) || null);
-          break;
-        case 'collections':
-          setCollections(m.data as ReturnType<typeof useAppStore.getState>['collections']);
-          break;
-        case 'history':
-          setHistory(m.data as ReturnType<typeof useAppStore.getState>['history']);
-          break;
-        case 'snapshots':
-          useAppStore.getState().setSnapshots(m.data as ReturnType<typeof useAppStore.getState>['snapshots']);
-          break;
-        case 'loadRequest': {
-          const msg2 = m as { data: ApiRequest; collectionId?: string | null; response?: ApiResponse | null };
-          useTabStore.getState().openRequest(
-            msg2.data,
-            msg2.collectionId,
-            undefined,
-            msg2.response ?? null,
-          );
-          break;
+      try {
+        const m = msg as { type: string; data?: unknown; message?: string; id?: string | null };
+        switch (m.type) {
+          case 'response':
+            setLoading(false);
+            setResponse(m.data as ReturnType<typeof useAppStore.getState>['response']);
+            addToast({ type: 'success', message: 'Request completed' });
+            break;
+          case 'error':
+            setLoading(false);
+            setError(m.message || 'Unknown error');
+            addToast({ type: 'error', message: m.message || 'Request failed' });
+            break;
+          case 'environments':
+            setEnvironments(m.data as ReturnType<typeof useAppStore.getState>['environments']);
+            break;
+          case 'activeEnvironment':
+            setActiveEnvironmentId((m.id as string) || null);
+            break;
+          case 'collections':
+            setCollections(m.data as ReturnType<typeof useAppStore.getState>['collections']);
+            break;
+          case 'history':
+            setHistory(m.data as ReturnType<typeof useAppStore.getState>['history']);
+            break;
+          case 'snapshots':
+            useAppStore.getState().setSnapshots(m.data as ReturnType<typeof useAppStore.getState>['snapshots']);
+            break;
+          case 'contractVariantPrompt': {
+            const prompt = m.data as { promptId: string; status: number; summary: string };
+            showConfirm({
+              title: 'New Response Type',
+              message: `Status ${prompt.status} returned a new JSON structure. Save as a new contract type?`,
+              confirmText: 'Save Type',
+              cancelText: 'Skip',
+              onConfirm: () => {
+                postMessage({ type: 'resolveContractVariantPrompt', promptId: prompt.promptId, save: true });
+                addToast({ type: 'info', message: 'New response type saved to contract' });
+              },
+              onCancel: () => {
+                postMessage({ type: 'resolveContractVariantPrompt', promptId: prompt.promptId, save: false });
+                addToast({ type: 'info', message: 'Skipped saving new response type' });
+              },
+            });
+            break;
+          }
+          case 'loadRequest': {
+            const msg2 = m as { data: ApiRequest; collectionId?: string | null; response?: ApiResponse | null };
+            useTabStore.getState().openRequest(
+              msg2.data,
+              msg2.collectionId,
+              undefined,
+              msg2.response ?? null,
+            );
+            break;
+          }
+          case 'cookies':
+            useAppStore.getState().setAllCookies(m.data as CookieEntry[]);
+            break;
+          case 'tabSettings': {
+            const ts = (m as any).data;
+            useAppStore.getState().setTabViewCollapsed(ts.tabViewCollapsed);
+            useAppStore.getState().setTabGrouping(ts.tabGrouping);
+            break;
+          }
         }
-        case 'cookies':
-          useAppStore.getState().setAllCookies(m.data as CookieEntry[]);
-          break;
-        case 'tabSettings': {
-          const ts = (m as any).data;
-          useAppStore.getState().setTabViewCollapsed(ts.tabViewCollapsed);
-          useAppStore.getState().setTabGrouping(ts.tabGrouping);
-          break;
-        }
+      } catch (err) {
+        console.error('Open Post message handling error', err);
+        setLoading(false);
+        addToast({ type: 'error', message: 'UI runtime error handled. Please retry request.' });
       }
     });
 
@@ -108,6 +163,7 @@ export default function App() {
   }, []);
 
   return (
+    <WebviewErrorBoundary>
     <div className="flex flex-col h-screen overflow-hidden">
       {/* Top bar */}
       <div className="flex items-center justify-between px-3 py-1.5 shrink-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
@@ -316,5 +372,6 @@ export default function App() {
         </>
       )}
     </div>
+    </WebviewErrorBoundary>
   );
 }

@@ -537,9 +537,9 @@ function RequestRow({ req, colId, folderPath, depth, confirmDelete, loadRequest,
         className="shrink-0 p-0.5 rounded transition-colors opacity-40 hover:opacity-100"
         style={{ color: 'var(--vsc-error)' }}
         title="Delete request"
-        onClick={() => confirmDelete('Delete Request', `Delete "${req.name || req.url}"?`, () => {
+        onClick={() => confirmDelete('Delete API Endpoint', `Permanently delete "${req.name || req.url}" and its history? This cannot be undone.`, () => {
           postMessage({ type: 'deleteRequest', collectionId: colId, requestId: req.id, folderPath: folderPath.length ? folderPath : undefined });
-          addToast({ type: 'info', message: 'Request deleted' });
+          addToast({ type: 'info', message: 'API endpoint and related history deleted' });
         })}
       ><Trash2 size={11} /></button>
     </div>

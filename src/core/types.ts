@@ -146,12 +146,44 @@ export interface SnapshotRecord {
   response: ApiResponse;
 }
 
+export interface ContractVariantEvent {
+  timestamp: number;
+  recordId: string;
+}
+
+export interface ContractVariant {
+  id: string;
+  signature: string;
+  summary: string;
+  sampleBody: string;
+  contentType: string;
+  firstSeen: number;
+  lastSeen: number;
+  occurrences: number;
+  history: ContractVariantEvent[];
+}
+
+export interface ContractStatusBucket {
+  status: number;
+  latestVariantId: string | null;
+  variants: ContractVariant[];
+}
+
+export interface ContractVariantPrompt {
+  promptId: string;
+  snapshotId: string;
+  status: number;
+  signature: string;
+  summary: string;
+}
+
 export interface Snapshot {
   id: string;
   name: string;
   createdAt: number;
   baseRequest: ApiRequest;
   records: SnapshotRecord[];
+  responseContracts?: ContractStatusBucket[];
 }
 
 export interface DeleteHistoryPayload {
@@ -169,7 +201,8 @@ export type MessageToWebview =
   | { type: 'filePicked'; purpose: string; filePath: string; fileName: string }
   | { type: 'cookies'; data: CookieEntry[] }
   | { type: 'tabSettings'; data: { tabViewCollapsed: boolean; tabGrouping: boolean } }
-  | { type: 'snapshots'; data: Snapshot[] };
+  | { type: 'snapshots'; data: Snapshot[] }
+  | { type: 'contractVariantPrompt'; data: ContractVariantPrompt };
 
 export type MessageToExtension =
   | { type: 'sendRequest'; data: ApiRequest; sslVerification?: boolean }
@@ -204,4 +237,5 @@ export type MessageToExtension =
   | { type: 'addSnapshotRecord'; snapshotId: string; request: ApiRequest; response: ApiResponse }
   | { type: 'deleteSnapshot'; id: string }
   | { type: 'deleteSnapshotRecord'; snapshotId: string; recordId: string }
-  | { type: 'renameSnapshot'; id: string; name: string };
+  | { type: 'renameSnapshot'; id: string; name: string }
+  | { type: 'resolveContractVariantPrompt'; promptId: string; save: boolean };

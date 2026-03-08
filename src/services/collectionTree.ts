@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { loadCollections, saveCollections } from '../storage/fileStore';
-import { Collection, ApiRequest, KeyValue, AuthConfig } from '../core/types';
+import { Collection, CollectionFolder, ApiRequest, KeyValue, AuthConfig } from '../core/types';
 
 type TreeItem = CollectionItem | FolderItem | RequestItem;
 
@@ -22,7 +22,11 @@ class CollectionItem extends vscode.TreeItem {
 }
 
 class FolderItem extends vscode.TreeItem {
-  constructor(public readonly folder: Collection['folders'][0], public readonly collectionId: string) {
+  constructor(
+    public readonly folder: Collection['folders'][0],
+    public readonly collectionId: string,
+    public readonly folderPath: string[],
+  ) {
     const hasChildren = folder.requests.length > 0 || folder.folders.length > 0;
     super(folder.name, hasChildren ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed);
     this.contextValue = 'folder';
@@ -58,16 +62,49 @@ export class CollectionTreeProvider implements vscode.TreeDataProvider<TreeItem>
       return loadCollections().map(c => new CollectionItem(c));
     }
     if (element instanceof CollectionItem) {
-      const folders = element.collection.folders.map(f => new FolderItem(f, element.collection.id));
+      const folders = element.collection.folders.map(f => new FolderItem(f, element.collection.id, [f.id]));
       const requests = element.collection.requests.map(r => new RequestItem(r, element.collection.id));
       return [...folders, ...requests];
     }
     if (element instanceof FolderItem) {
-      const folders = element.folder.folders.map(f => new FolderItem(f, element.collectionId));
+      const folders = element.folder.folders.map(f => new FolderItem(f, element.collectionId, [...element.folderPath, f.id]));
       const requests = element.folder.requests.map(r => new RequestItem(r, element.collectionId));
       return [...folders, ...requests];
     }
     return [];
+  }
+
+  async addFolder(item?: CollectionItem | FolderItem) {
+    if (!item) {
+      vscode.window.showInformationMessage('Right-click a collection or folder in the Collections tree to create a folder.');
+      return;
+    }
+
+    const name = await vscode.window.showInputBox({ prompt: 'Folder name', placeHolder: 'Auth' });
+    if (!name || !name.trim()) return;
+
+    const collections = loadCollections();
+    const folder: CollectionFolder = {
+      id: Date.now().toString(),
+      name: name.trim(),
+      requests: [],
+      folders: [],
+    };
+
+    if (item instanceof CollectionItem) {
+      const col = collections.find(c => c.id === item.collection.id);
+      if (!col) return;
+      col.folders.push(folder);
+    } else {
+      const col = collections.find(c => c.id === item.collectionId);
+      if (!col) return;
+      const parent = resolveFolderByPath(col.folders, item.folderPath);
+      if (!parent) return;
+      parent.folders.push(folder);
+    }
+
+    saveCollections(collections);
+    this.refresh();
   }
 
   async addCollection() {
@@ -101,11 +138,16 @@ export class CollectionTreeProvider implements vscode.TreeDataProvider<TreeItem>
     this.refresh();
   }
 
-  async addRequest(item: CollectionItem) {
+  async addRequest(item?: CollectionItem | FolderItem) {
+    if (!item) {
+      vscode.window.showInformationMessage('Right-click a collection or folder in the Collections tree to create a request.');
+      return;
+    }
     const name = await vscode.window.showInputBox({ prompt: 'Request name', placeHolder: 'Get Users' });
     if (!name) return;
     const collections = loadCollections();
-    const col = collections.find(c => c.id === item.collection.id);
+    const collectionId = item instanceof CollectionItem ? item.collection.id : item.collectionId;
+    const col = collections.find(c => c.id === collectionId);
     if (!col) return;
     const request: ApiRequest = {
       id: Date.now().toString(),
@@ -117,7 +159,15 @@ export class CollectionTreeProvider implements vscode.TreeDataProvider<TreeItem>
       body: { type: 'none' },
       auth: { type: 'none' },
     };
-    col.requests.push(request);
+
+    if (item instanceof CollectionItem) {
+      col.requests.push(request);
+    } else {
+      const parent = resolveFolderByPath(col.folders, item.folderPath);
+      if (!parent) return;
+      parent.requests.push(request);
+    }
+
     saveCollections(collections);
     this.refresh();
     vscode.commands.executeCommand('openPost.openRequest', request, col.id);
@@ -192,6 +242,19 @@ function countRequests(col: { requests: unknown[]; folders: { requests: unknown[
   let count = col.requests.length;
   for (const f of col.folders) { count += countRequests(f); }
   return count;
+}
+
+function resolveFolderByPath(folders: CollectionFolder[], path: string[]): CollectionFolder | undefined {
+  let currentFolders = folders;
+  let current: CollectionFolder | undefined;
+
+  for (const id of path) {
+    current = currentFolders.find(f => f.id === id);
+    if (!current) return undefined;
+    currentFolders = current.folders;
+  }
+
+  return current;
 }
 
 // --- Postman v2.1 conversion ---

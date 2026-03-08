@@ -69,6 +69,11 @@
         "icon": "$(add)"
       },
       {
+        "command": "openPost.addFolder",
+        "title": "New Folder",
+        "icon": "$(new-folder)"
+      },
+      {
         "command": "openPost.clearHistory",
         "title": "Clear History",
         "icon": "$(clear-all)"
@@ -193,6 +198,21 @@
         {
           "command": "openPost.addRequest",
           "when": "view == openPost.collections && viewItem == collection",
+          "group": "inline"
+        },
+        {
+          "command": "openPost.addRequest",
+          "when": "view == openPost.collections && viewItem == folder",
+          "group": "inline"
+        },
+        {
+          "command": "openPost.addFolder",
+          "when": "view == openPost.collections && viewItem == collection",
+          "group": "inline"
+        },
+        {
+          "command": "openPost.addFolder",
+          "when": "view == openPost.collections && viewItem == folder",
           "group": "inline"
         },
         {

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { MessageToExtension, MessageToWebview, Collection, CollectionFolder, HistoryEntry, ApiRequest, CookieEntry, Snapshot, SnapshotRecord } from '../core/types';
+import { MessageToExtension, MessageToWebview, Collection, CollectionFolder, HistoryEntry, ApiRequest, CookieEntry, Snapshot, SnapshotRecord, ContractStatusBucket, ContractVariantPrompt } from '../core/types';
 import { executeRequest } from '../core/httpClient';
 import { applyAuth } from '../auth/authHandler';
 import { runScript } from '../scripting/sandbox';
@@ -34,12 +34,83 @@ function createSnapshotRecord(request: ApiRequest, response: any): SnapshotRecor
   };
 }
 
+interface PendingContractPrompt {
+  snapshotId: string;
+  status: number;
+  signature: string;
+  summary: string;
+  contentType: string;
+  sampleBody: string;
+  recordId: string;
+  detectedAt: number;
+}
+
+function detectContentType(headers: Record<string, string>): string {
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === 'content-type') {
+      return value.toLowerCase();
+    }
+  }
+  return '';
+}
+
+function signatureFromJsonShape(value: unknown): string {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) {
+    if (value.length === 0) return 'array<empty>';
+    const itemSigs = [...new Set(value.map(signatureFromJsonShape))].sort();
+    return `array<${itemSigs.join('|')}>`;
+  }
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const entries = Object.keys(obj)
+      .sort()
+      .map((key) => `${key}:${signatureFromJsonShape(obj[key])}`);
+    return `{${entries.join(',')}}`;
+  }
+  return typeof value;
+}
+
+function createResponseSignature(response: { headers: Record<string, string>; body: string }): { signature: string; summary: string; contentType: string; sampleBody: string } {
+  const contentType = detectContentType(response.headers);
+  const sampleBody = response.body.length > 500 ? `${response.body.slice(0, 500)}…` : response.body;
+
+  try {
+    const parsed = JSON.parse(response.body);
+    const signature = signatureFromJsonShape(parsed);
+    return {
+      signature: `json:${signature}`,
+      summary: signature.length > 200 ? `${signature.slice(0, 200)}…` : signature,
+      contentType,
+      sampleBody,
+    };
+  } catch {
+    const primitive = response.body.trim().length === 0 ? 'empty' : 'text';
+    return {
+      signature: `${contentType || 'unknown'}:${primitive}`,
+      summary: `${contentType || 'unknown'} ${primitive}`,
+      contentType,
+      sampleBody,
+    };
+  }
+}
+
+function getOrCreateBucket(contracts: ContractStatusBucket[], status: number): ContractStatusBucket {
+  let bucket = contracts.find((b) => b.status === status);
+  if (!bucket) {
+    bucket = { status, latestVariantId: null, variants: [] };
+    contracts.push(bucket);
+  }
+  return bucket;
+}
+
 export class OpenPostPanel {
   public static currentPanel: OpenPostPanel | undefined;
   public static onDataChanged: (() => void) | undefined;
   private readonly panel: vscode.WebviewPanel;
   private readonly extensionUri: vscode.Uri;
   private disposables: vscode.Disposable[] = [];
+  private readonly pendingContractPrompts = new Map<string, PendingContractPrompt>();
 
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
     this.panel = panel;
@@ -191,13 +262,51 @@ export class OpenPostPanel {
           const snapshots = store.loadSnapshots();
           const snapshotIndex = snapshots.findIndex(s => s.baseRequest.id === request.id);
           if (snapshotIndex >= 0) {
+            const record = createSnapshotRecord(request, response);
+            const snapshot = snapshots[snapshotIndex];
+            const contracts = [...(snapshot.responseContracts || [])];
+            const signatureInfo = createResponseSignature(response);
+            const bucket = contracts.find((b) => b.status === response.status);
+            const existingVariant = bucket?.variants.find(v => v.signature === signatureInfo.signature);
+
+            if (bucket && existingVariant) {
+              existingVariant.lastSeen = record.timestamp;
+              existingVariant.occurrences += 1;
+              existingVariant.sampleBody = signatureInfo.sampleBody;
+              existingVariant.history.push({ timestamp: record.timestamp, recordId: record.id });
+              bucket.latestVariantId = existingVariant.id;
+            }
+
             snapshots[snapshotIndex] = {
-              ...snapshots[snapshotIndex],
+              ...snapshot,
               baseRequest: request,
-              records: [...snapshots[snapshotIndex].records, createSnapshotRecord(request, response)],
+              records: [...snapshot.records, record],
+              responseContracts: contracts,
             };
             store.saveSnapshots(snapshots);
             this.postMessage({ type: 'snapshots', data: store.loadSnapshots() });
+
+            if (!existingVariant) {
+              const promptId = Date.now().toString() + Math.random().toString(36).slice(2);
+              this.pendingContractPrompts.set(promptId, {
+                snapshotId: snapshot.id,
+                status: response.status,
+                signature: signatureInfo.signature,
+                summary: signatureInfo.summary,
+                contentType: signatureInfo.contentType,
+                sampleBody: signatureInfo.sampleBody,
+                recordId: record.id,
+                detectedAt: record.timestamp,
+              });
+              const prompt: ContractVariantPrompt = {
+                promptId,
+                snapshotId: snapshot.id,
+                status: response.status,
+                signature: signatureInfo.signature,
+                summary: signatureInfo.summary,
+              };
+              this.postMessage({ type: 'contractVariantPrompt', data: prompt });
+            }
           }
 
           this.postMessage({ type: 'history', data: store.loadHistory() });
@@ -234,8 +343,20 @@ export class OpenPostPanel {
         if (col) {
           const parent = resolveFolder(col, msg.folderPath);
           if (parent) {
+            const targetRequest = parent.requests.find(r => r.id === msg.requestId);
             parent.requests = parent.requests.filter(r => r.id !== msg.requestId);
             store.saveCollections(collections);
+
+            if (targetRequest) {
+              const history = store.loadHistory().filter(entry => !(
+                entry.request.method === targetRequest.method
+                && entry.request.url === targetRequest.url
+                && entry.request.name === targetRequest.name
+              ));
+              store.saveHistory(history);
+              this.postMessage({ type: 'history', data: history });
+            }
+
             this.postMessage({ type: 'collections', data: collections });
             this.notifyDataChanged();
           }
@@ -298,6 +419,7 @@ export class OpenPostPanel {
                 createdAt: now,
                 baseRequest: msg.data.request,
                 records: [],
+                responseContracts: [],
               });
             }
             store.saveSnapshots(snapshots);
@@ -407,6 +529,7 @@ export class OpenPostPanel {
             createdAt: now,
             baseRequest: msg.baseRequest,
             records: [],
+            responseContracts: [],
           };
           snapshots.push(newSnapshot);
         }
@@ -450,6 +573,44 @@ export class OpenPostPanel {
         store.saveSnapshots(snapshots);
         this.postMessage({ type: 'snapshots', data: snapshots });
         this.notifyDataChanged();
+        break;
+      }
+      case 'resolveContractVariantPrompt': {
+        const pending = this.pendingContractPrompts.get(msg.promptId);
+        if (!pending) break;
+
+        if (msg.save) {
+          const snapshots = store.loadSnapshots();
+          const snapshotIndex = snapshots.findIndex(s => s.id === pending.snapshotId);
+          if (snapshotIndex >= 0) {
+            const snapshot = snapshots[snapshotIndex];
+            const contracts = [...(snapshot.responseContracts || [])];
+            const bucket = getOrCreateBucket(contracts, pending.status);
+            const existing = bucket.variants.find(v => v.signature === pending.signature);
+
+            if (!existing) {
+              const variantId = Date.now().toString() + Math.random().toString(36).slice(2);
+              bucket.variants.push({
+                id: variantId,
+                signature: pending.signature,
+                summary: pending.summary,
+                sampleBody: pending.sampleBody,
+                contentType: pending.contentType,
+                firstSeen: pending.detectedAt,
+                lastSeen: pending.detectedAt,
+                occurrences: 1,
+                history: [{ timestamp: pending.detectedAt, recordId: pending.recordId }],
+              });
+              bucket.latestVariantId = variantId;
+              snapshots[snapshotIndex] = { ...snapshot, responseContracts: contracts };
+              store.saveSnapshots(snapshots);
+              this.postMessage({ type: 'snapshots', data: store.loadSnapshots() });
+              this.notifyDataChanged();
+            }
+          }
+        }
+
+        this.pendingContractPrompts.delete(msg.promptId);
         break;
       }
       case 'exportCollection': {

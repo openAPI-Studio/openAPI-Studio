@@ -3,7 +3,7 @@ import { useRequestStore } from '../stores/requestStore';
 import { useAppStore } from '../stores/appStore';
 import { postMessage, HttpMethod } from '../types/messages';
 import { parseCurl } from '../types/curlParser';
-import { Check, Save, ChevronDown, Pencil, Code, X, Bookmark } from 'lucide-react';
+import { Check, Save, ChevronDown, Pencil, Code, X, Bookmark, Trash2 } from 'lucide-react';
 import { KeyValueEditor } from './KeyValueEditor';
 import { BodyEditor } from './BodyEditor';
 import { AuthPanel } from './AuthPanel';
@@ -31,6 +31,7 @@ export function RequestBuilder() {
   const setResponse = useAppStore((s) => s.setResponse);
   const setError = useAppStore((s) => s.setError);
   const addToast = useAppStore((s) => s.addToast);
+  const showConfirm = useAppStore((s) => s.showConfirm);
   const showCodePanel = useAppStore((s) => s.showCodePanel);
   const setShowCodePanel = useAppStore((s) => s.setShowCodePanel);
   const codePanelRatio = useAppStore((s) => s.codePanelRatio);
@@ -88,6 +89,23 @@ export function RequestBuilder() {
     const req = toApiRequest();
     postMessage({ type: 'saveRequest', data: { collectionId: sourceCollectionId, folderPath: sourceFolderPath || undefined, request: req } });
     addToast({ type: 'success', message: 'Request updated' });
+  };
+
+  const deleteRequest = () => {
+    if (!sourceCollectionId || !sourceRequestId) return;
+    showConfirm({
+      title: 'Delete API Endpoint',
+      message: `Permanently delete "${name || url || 'Untitled Request'}" and its history? This cannot be undone.`,
+      onConfirm: () => {
+        postMessage({
+          type: 'deleteRequest',
+          collectionId: sourceCollectionId,
+          requestId: sourceRequestId,
+          folderPath: sourceFolderPath || undefined,
+        });
+        addToast({ type: 'info', message: 'API endpoint and related history deleted' });
+      },
+    });
   };
 
   const saveCopyTo = (collectionId: string) => {
@@ -156,6 +174,16 @@ export function RequestBuilder() {
           </button>
         )}
         <div className="flex items-center gap-1 ml-auto shrink-0">
+          {hasSource && (
+            <button
+              onClick={deleteRequest}
+              className="btn-secondary shrink-0 p-1.5"
+              style={{ color: 'var(--vsc-error)' }}
+              title="Delete API endpoint"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
           <button onClick={hasSource ? saveUpdate : () => setShowSaveMenu(!showSaveMenu)} className="btn-primary shrink-0 p-1.5" title="Save">
             <Save size={13} />
           </button>

@@ -251,7 +251,8 @@ type MessageToWebview =
   | { type: 'history';           data: HistoryEntry[] }
   | { type: 'activeEnvironment'; id: string | null }
   | { type: 'filePicked';        purpose: string; filePath: string; fileName: string }
-  | { type: 'snapshots';         data: Snapshot[] };
+  | { type: 'snapshots';         data: Snapshot[] }
+  | { type: 'contractVariantPrompt'; data: ContractVariantPrompt };
 ```
 
 There is also a non-protocol message sent when a saved request is clicked in the sidebar tree:
@@ -266,7 +267,7 @@ There is also a non-protocol message sent when a saved request is clicked in the
 ```typescript
 type MessageToExtension =
   | { type: 'sendRequest';          data: ApiRequest; sslVerification?: boolean }
-  | { type: 'saveRequest';          data: { collectionId: string; folderId?: string; request: ApiRequest } }
+  | { type: 'saveRequest';          data: { collectionId: string; folderId?: string; folderPath?: string[]; request: ApiRequest } }
   | { type: 'loadCollections' }
   | { type: 'loadEnvironments' }
   | { type: 'saveEnvironment';      data: Environment }
@@ -275,6 +276,7 @@ type MessageToExtension =
   | { type: 'loadHistory' }
   | { type: 'createCollection';     name: string }
   | { type: 'deleteCollection';     id: string }
+  | { type: 'deleteRequest';        collectionId: string; requestId: string; folderPath?: string[] }
   | { type: 'runPreRequestScript';  script: string; request: ApiRequest }
   | { type: 'runTestScript';        script: string; request: ApiRequest; response: ApiResponse }
   | { type: 'pickFile';             purpose: string }
@@ -285,14 +287,18 @@ type MessageToExtension =
   | { type: 'addSnapshotRecord';    snapshotId: string; request: ApiRequest; response: ApiResponse }
   | { type: 'deleteSnapshot';       id: string }
   | { type: 'deleteSnapshotRecord'; snapshotId: string; recordId: string }
-  | { type: 'renameSnapshot';       id: string; name: string };
+  | { type: 'renameSnapshot';       id: string; name: string }
+  | { type: 'resolveContractVariantPrompt'; promptId: string; save: boolean };
 ```
 
 ### Snapshot behavior notes
 
 - `saveRequest` now has snapshot side effects: when a request is saved into a collection, the extension auto-creates a snapshot contract for that saved request if one does not already exist.
 - `sendRequest` also has snapshot side effects for saved requests: after history is written, a matching snapshot record is appended automatically when `request.id === snapshot.baseRequest.id`.
+- `sendRequest` also performs contract-response type tracking per status: if a known structure is seen again, its latest/occurrence timeline is updated automatically.
+- If a new structure is detected, extension sends `contractVariantPrompt`; webview decides whether to save it via `resolveContractVariantPrompt`.
 - `saveSnapshot` now behaves like an upsert for a saved request: it updates the existing snapshot contract if one already exists for that request id.
+- `deleteRequest` removes a saved request from its collection/folder and also removes matching history entries where method, URL, and request name are equal to the deleted endpoint.
 - `deleteHistory` removes a single entry from `.openpost/history.json` and the updated history array is pushed back to the webview immediately.
 
 ### Sending a Message from WebView

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAppStore } from '../stores/appStore';
 import { useRequestStore } from '../stores/requestStore';
-import { postMessage } from '../types/messages';
+import { postMessage, Snapshot } from '../types/messages';
 import { JsonTreeView } from './JsonTreeView';
 import { X, Zap, Copy, Clock, ArrowDownToLine, ChevronDown, Bookmark, Trash2 } from 'lucide-react';
 
@@ -21,6 +21,7 @@ export function ResponseViewer() {
   const viewedSnapshotRecord = useAppStore((s) => s.viewedSnapshotRecord);
   const setViewedSnapshotRecord = useAppStore((s) => s.setViewedSnapshotRecord);
   const url = useRequestStore((s) => s.url);
+  const sourceRequestId = useRequestStore((s) => s.sourceRequestId);
   const [showHistoryMenu, setShowHistoryMenu] = React.useState(false);
 
   // Filter history for current URL
@@ -32,6 +33,32 @@ export function ResponseViewer() {
   // Resolve which response to display
   const viewedEntry = viewedHistoryId ? urlHistory.find((h) => h.id === viewedHistoryId) : null;
   const response = viewedEntry ? viewedEntry.response : latestResponse;
+  const activeSnapshot = React.useMemo<Snapshot | null>(
+    () => sourceRequestId ? snapshots.find((s) => s.baseRequest.id === sourceRequestId) || null : null,
+    [snapshots, sourceRequestId],
+  );
+  const contractBuckets = React.useMemo(
+    () => {
+      const raw = activeSnapshot?.responseContracts;
+      if (!Array.isArray(raw)) return [];
+      return raw
+        .filter((bucket) => typeof bucket?.status === 'number' && Array.isArray((bucket as any).variants))
+        .map((bucket) => ({
+          ...bucket,
+          variants: bucket.variants
+            .filter((variant) => variant && typeof variant.id === 'string')
+            .map((variant) => ({
+              ...variant,
+              history: Array.isArray(variant.history) ? variant.history : [],
+              occurrences: typeof variant.occurrences === 'number' ? variant.occurrences : 0,
+              lastSeen: typeof variant.lastSeen === 'number' ? variant.lastSeen : 0,
+              summary: typeof variant.summary === 'string' ? variant.summary : '',
+            })),
+        }))
+        .sort((a, b) => a.status - b.status);
+    },
+    [activeSnapshot],
+  );
 
   if (loading) {
     return (
@@ -232,6 +259,42 @@ export function ResponseViewer() {
           </span>
         </div>
       </div>
+
+      {activeSnapshot && contractBuckets.length > 0 && (
+        <div className="rounded p-2.5" style={{ background: 'var(--vsc-input-bg)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] uppercase tracking-wider font-semibold opacity-40">Contract Responses</span>
+            <span className="text-[10px] opacity-40">Latest unique type per status is marked</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {contractBuckets.map((bucket) => {
+              const variants = [...bucket.variants].sort((a, b) => b.lastSeen - a.lastSeen);
+              return (
+                <div key={bucket.status} className="rounded" style={{ border: '1px solid var(--vsc-border-visible)' }}>
+                  <div className="px-2 py-1 text-[11px] font-semibold" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
+                    Status {bucket.status} · {variants.length} unique type{variants.length !== 1 ? 's' : ''}
+                  </div>
+                  <div className="max-h-[220px] overflow-auto">
+                    {variants.map((variant) => (
+                      <div key={variant.id} className="px-2 py-1.5 text-[11px]" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <div className="flex items-center gap-2 mb-1">
+                          {bucket.latestVariantId === variant.id && (
+                            <span className="text-[9px] px-1 rounded" style={{ background: 'var(--vsc-success)', color: '#000' }}>LATEST</span>
+                          )}
+                          <span className="opacity-50">Seen {variant.occurrences}×</span>
+                          <span className="opacity-50">Last: {formatTime(variant.lastSeen)}</span>
+                        </div>
+                        <pre className="text-[10px] opacity-75 whitespace-pre-wrap break-all">{variant.summary}</pre>
+                        <p className="text-[10px] opacity-40 mt-1">History: {variant.history.map((h) => formatTime(h.timestamp)).join(' → ')}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>

@@ -131,12 +131,44 @@ export interface SnapshotRecord {
   response: ApiResponse;
 }
 
+export interface ContractVariantEvent {
+  timestamp: number;
+  recordId: string;
+}
+
+export interface ContractVariant {
+  id: string;
+  signature: string;
+  summary: string;
+  sampleBody: string;
+  contentType: string;
+  firstSeen: number;
+  lastSeen: number;
+  occurrences: number;
+  history: ContractVariantEvent[];
+}
+
+export interface ContractStatusBucket {
+  status: number;
+  latestVariantId: string | null;
+  variants: ContractVariant[];
+}
+
+export interface ContractVariantPrompt {
+  promptId: string;
+  snapshotId: string;
+  status: number;
+  signature: string;
+  summary: string;
+}
+
 export interface Snapshot {
   id: string;
   name: string;
   createdAt: number;
   baseRequest: ApiRequest;
   records: SnapshotRecord[];
+  responseContracts?: ContractStatusBucket[];
 }
 
 // VS Code webview API

@@ -334,16 +334,17 @@ My API Collection
 └── GET  Health Check
 ```
 
-Collections → Folders → Requests (two levels of nesting: collection and folder).
+Collections support recursive folder nesting (folders can contain subfolders at any depth) plus requests at collection root or inside any folder.
 
 ### Operations
 
 | Operation | How to trigger |
 |---|---|
 | New collection | Click **⊕** icon in Collections panel title bar |
+| New folder / subfolder | Right-click a collection or folder → **New Folder** (native tree), or use the **New folder** action in the webview Collections sidebar |
 | Import Postman | Click **import** icon in Collections panel title bar |
 | Import OpenAPI | Click **file-code** icon in Collections panel title bar |
-| New request | Right-click a collection → **New Request** (inline icon) |
+| New request | Right-click a collection or folder → **New Request** (inline icon) |
 | Open an existing request | Click it in the tree |
 | Rename a request | Right-click request → **Rename** (inline icon) |
 | Save current request | Click **Save ▾** in the request builder → choose collection |
@@ -368,6 +369,15 @@ Each collection has a `variables` array in storage. These are scoped to the coll
 ## Response Viewer
 
 The bottom panel shows the most recent HTTP response.
+
+### Contract Response Types
+
+For saved requests with a snapshot contract, the response viewer tracks unique response **types** per HTTP status code:
+
+- Uniqueness is based on response status + JSON structure (field/type shape), not exact values.
+- When a new unique response shape is detected for a status, Open Post prompts you to save or skip it.
+- Saved variants are grouped by status in **Contract Responses** and the latest saved variant is marked as default.
+- Each variant keeps a per-status timeline of when that shape was observed.
 
 ### Status Bar
 
@@ -409,6 +419,7 @@ Every time you click Send, the request and its full response are saved automatic
 - **Compare / browse** — click the clock in the response viewer to open the per-URL history dropdown
 - **Delete selected history** — use the trash icon beside the response-panel history dropdown
 - **Delete a single history entry** — use the trash icon in the webview History sidebar or the VS Code History tree
+- **Delete a saved API endpoint** — use the trash icon in the Request Builder header (or Collections sidebar row), confirm the permanent delete prompt, and the endpoint plus related history entries are removed together
 - **Clear History** — gear icon → "Clear All History" → confirm dialog wipes everything
 
 History is saved to `.openpost/history.json`. You may want to add this file to `.gitignore`.
