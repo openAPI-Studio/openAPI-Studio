@@ -146,6 +146,18 @@ export default function App() {
             useAppStore.getState().setTabGrouping(ts.tabGrouping);
             break;
           }
+          case 'globalCollections':
+            useAppStore.getState().setGlobalCollections(m.data as any);
+            break;
+          case 'globalEnvironments':
+            useAppStore.getState().setGlobalEnvironments(m.data as any);
+            break;
+          case 'globalHistory':
+            useAppStore.getState().setGlobalHistory(m.data as any);
+            break;
+          case 'globalActiveEnvironment':
+            useAppStore.getState().setGlobalActiveEnvironmentId((m as any).id);
+            break;
         }
       } catch (err) {
         console.error('Open Post message handling error', err);
@@ -160,6 +172,9 @@ export default function App() {
     postMessage({ type: 'loadCookies' });
     postMessage({ type: 'loadTabSettings' });
     postMessage({ type: 'loadSnapshots' });
+    postMessage({ type: 'loadGlobalCollections' });
+    postMessage({ type: 'loadGlobalEnvironments' });
+    postMessage({ type: 'loadGlobalHistory' });
   }, []);
 
   return (

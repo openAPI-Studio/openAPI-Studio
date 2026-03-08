@@ -3,7 +3,7 @@ import { useAppStore } from '../stores/appStore';
 import { useTabStore } from '../stores/tabStore';
 import { postMessage, Environment, KeyValue, CollectionFolder, ApiRequest, Snapshot, SnapshotRecord } from '../types/messages';
 import { KeyValueEditor } from './KeyValueEditor';
-import { Trash2, PanelLeftClose, PanelLeftOpen, Search, FolderOpen, FolderPlus, FilePlus, Globe, Clock, ChevronRight, ChevronDown, FileText, Pencil, Folder, Download, Upload, Bookmark } from 'lucide-react';
+import { Trash2, PanelLeftClose, PanelLeftOpen, Search, FolderOpen, FolderPlus, FilePlus, Globe, Clock, ChevronRight, ChevronDown, FileText, Pencil, Folder, Download, Upload, Bookmark, RefreshCw } from 'lucide-react';
 
 const tabIcons = { collections: FolderOpen, environments: Globe, history: Clock, snapshots: Bookmark } as const;
 
@@ -22,11 +22,15 @@ export function Sidebar() {
   const environments = useAppStore((s) => s.environments);
   const history = useAppStore((s) => s.history);
   const snapshots = useAppStore((s) => s.snapshots);
+  const globalCollections = useAppStore((s) => s.globalCollections);
+  const globalEnvironments = useAppStore((s) => s.globalEnvironments);
+  const globalHistory = useAppStore((s) => s.globalHistory);
   const openRequest = useTabStore((s) => s.openRequest);
 
   /** Open request in new tab, loading last response from history if available */
   const openReq = (r: ApiRequest, collectionId?: string, folderPath?: string[]) => {
-    const lastHistory = history.slice().reverse().find((h) => h.request.url === r.url && h.request.method === r.method);
+    const allHistory = [...history, ...globalHistory];
+    const lastHistory = allHistory.slice().reverse().find((h) => h.request.url === r.url && h.request.method === r.method);
     openRequest(r, collectionId, folderPath, lastHistory?.response ?? null);
   };
   const addToast = useAppStore((s) => s.addToast);
@@ -34,6 +38,7 @@ export function Sidebar() {
 
   const [editingEnv, setEditingEnv] = React.useState<Environment | null>(null);
   const [newName, setNewName] = React.useState('');
+  const [newGlobalName, setNewGlobalName] = React.useState('');
   const [collapsedNodes, setCollapsedNodes] = React.useState<Set<string>>(new Set());
   const [creatingIn, setCreatingIn] = React.useState<{ colId: string; path: string[]; type: 'folder' | 'request' } | null>(null);
   const [createName, setCreateName] = React.useState('');
@@ -48,11 +53,12 @@ export function Sidebar() {
 
   const q = search.toLowerCase();
   const filteredCollections = collections.filter((c) => c.name.toLowerCase().includes(q) || c.requests.some((r) => r.name.toLowerCase().includes(q)));
+  const filteredGlobalCollections = globalCollections.filter((c) => c.name.toLowerCase().includes(q) || c.requests.some((r) => r.name.toLowerCase().includes(q)));
   const filteredEnvironments = environments.filter((e) => e.name.toLowerCase().includes(q));
   const filteredHistory = history.filter((h) => h.request.url.toLowerCase().includes(q) || h.request.method.toLowerCase().includes(q));
   const filteredSnapshots = snapshots.filter((s) => s.name.toLowerCase().includes(q) || s.baseRequest.url.toLowerCase().includes(q));
 
-  const counts = { collections: collections.length, environments: environments.length, history: history.length, snapshots: snapshots.length };
+  const counts = { collections: collections.length + globalCollections.length, environments: environments.length + globalEnvironments.length, history: history.length + globalHistory.length, snapshots: snapshots.length };
 
   const confirmDelete = (title: string, message: string, onConfirm: () => void) =>
     showConfirm({ title, message, onConfirm });
@@ -160,11 +166,44 @@ export function Sidebar() {
                 title="Import collection"
               ><Upload size={13} /></button>
             </div>
-            {filteredCollections.length === 0 && <p className="text-[11px] opacity-30 py-4 text-center">No collections</p>}
+            {filteredCollections.length === 0 && <p className="text-[11px] opacity-30 py-2 text-center">No local collections</p>}
             {filteredCollections.map((col) => (
               <CollectionNode
                 key={col.id}
                 col={col}
+                scope="local"
+                collapsedNodes={collapsedNodes}
+                toggleNode={toggleNode}
+                confirmDelete={confirmDelete}
+                loadRequest={(r, folderPath) => openReq(r, col.id, folderPath)}
+                addToast={addToast}
+                creatingIn={creatingIn}
+                setCreatingIn={setCreatingIn}
+                createName={createName}
+                setCreateName={setCreateName}
+              />
+            ))}
+
+            {/* Global Collections */}
+            <div className="section-label flex items-center justify-between mt-2">
+              <span>Global</span>
+              <button
+                className="p-0.5 rounded opacity-40 hover:opacity-100 transition-opacity"
+                title="Refresh global data"
+                onClick={() => { postMessage({ type: 'loadGlobalCollections' }); postMessage({ type: 'loadGlobalEnvironments' }); postMessage({ type: 'loadGlobalHistory' }); addToast({ type: 'info', message: 'Global data refreshed' }); }}
+              ><RefreshCw size={11} /></button>
+            </div>
+            <div className="flex gap-1 px-2 mb-1">
+              <input className="input-field flex-1 text-[11px] py-1" placeholder="New global collection..." value={newGlobalName} onChange={(e) => setNewGlobalName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && newGlobalName.trim()) { postMessage({ type: 'createGlobalCollection', name: newGlobalName.trim() }); setNewGlobalName(''); addToast({ type: 'success', message: 'Global collection created' }); } }} />
+              <button className="btn-primary py-1 px-2" onClick={() => { if (newGlobalName.trim()) { postMessage({ type: 'createGlobalCollection', name: newGlobalName.trim() }); setNewGlobalName(''); addToast({ type: 'success', message: 'Global collection created' }); } }}>+</button>
+            </div>
+            {filteredGlobalCollections.length === 0 && <p className="text-[11px] opacity-30 py-2 text-center">No global collections</p>}
+            {filteredGlobalCollections.map((col) => (
+              <CollectionNode
+                key={col.id}
+                col={col}
+                scope="global"
                 collapsedNodes={collapsedNodes}
                 toggleNode={toggleNode}
                 confirmDelete={confirmDelete}
@@ -306,6 +345,7 @@ function countItems(folders: CollectionFolder[], requests: ApiRequest[]): number
 
 interface CollectionNodeProps {
   col: { id: string; name: string; folders: CollectionFolder[]; requests: ApiRequest[] };
+  scope?: 'local' | 'global';
   collapsedNodes: Set<string>;
   toggleNode: (id: string) => void;
   confirmDelete: (title: string, message: string, onConfirm: () => void) => void;
@@ -317,7 +357,8 @@ interface CollectionNodeProps {
   setCreateName: (v: string) => void;
 }
 
-function CollectionNode({ col, collapsedNodes, toggleNode, confirmDelete, loadRequest, addToast, creatingIn, setCreatingIn, createName, setCreateName }: CollectionNodeProps) {
+function CollectionNode({ col, scope = 'local', collapsedNodes, toggleNode, confirmDelete, loadRequest, addToast, creatingIn, setCreatingIn, createName, setCreateName }: CollectionNodeProps) {
+  const g = scope === 'global';
   const open = !collapsedNodes.has(col.id);
   const total = countItems(col.folders, col.requests);
   const pathKey = JSON.stringify([]);
@@ -325,10 +366,10 @@ function CollectionNode({ col, collapsedNodes, toggleNode, confirmDelete, loadRe
   const submitCreate = () => {
     if (!creatingIn || !createName.trim()) return;
     if (creatingIn.type === 'folder') {
-      postMessage({ type: 'createFolder', collectionId: col.id, name: createName.trim(), parentPath: creatingIn.path });
+      postMessage({ type: g ? 'createGlobalFolder' : 'createFolder', collectionId: col.id, name: createName.trim(), parentPath: creatingIn.path });
     } else {
       const req: any = { id: Date.now().toString(), name: createName.trim(), method: 'GET', url: '', params: [], headers: [], body: { type: 'none' }, auth: { type: 'none' } };
-      postMessage({ type: 'saveRequest', data: { collectionId: col.id, folderPath: creatingIn.path, request: req } });
+      postMessage({ type: g ? 'saveGlobalRequest' : 'saveRequest', data: { collectionId: col.id, folderPath: creatingIn.path, request: req } });
     }
     setCreateName('');
     setCreatingIn(null);
@@ -369,7 +410,7 @@ function CollectionNode({ col, collapsedNodes, toggleNode, confirmDelete, loadRe
             onClick={(e) => {
               e.stopPropagation();
               confirmDelete('Delete Collection', `Delete "${col.name}" and all contents? This cannot be undone.`, () => {
-                postMessage({ type: 'deleteCollection', id: col.id });
+                postMessage({ type: g ? 'deleteGlobalCollection' : 'deleteCollection', id: col.id });
                 addToast({ type: 'info', message: `Collection "${col.name}" deleted` });
               });
             }}
@@ -387,6 +428,7 @@ function CollectionNode({ col, collapsedNodes, toggleNode, confirmDelete, loadRe
               key={folder.id}
               folder={folder}
               colId={col.id}
+              scope={scope}
               path={[folder.id]}
               depth={1}
               collapsedNodes={collapsedNodes}
@@ -401,7 +443,7 @@ function CollectionNode({ col, collapsedNodes, toggleNode, confirmDelete, loadRe
             />
           ))}
           {col.requests.map((req) => (
-            <RequestRow key={req.id} req={req} colId={col.id} folderPath={[]} depth={1} confirmDelete={confirmDelete} loadRequest={loadRequest} addToast={addToast} />
+            <RequestRow key={req.id} req={req} colId={col.id} scope={scope} folderPath={[]} depth={1} confirmDelete={confirmDelete} loadRequest={loadRequest} addToast={addToast} />
           ))}
         </div>
       )}
@@ -412,6 +454,7 @@ function CollectionNode({ col, collapsedNodes, toggleNode, confirmDelete, loadRe
 interface FolderNodeProps {
   folder: CollectionFolder;
   colId: string;
+  scope?: 'local' | 'global';
   path: string[];
   depth: number;
   collapsedNodes: Set<string>;
@@ -425,7 +468,8 @@ interface FolderNodeProps {
   setCreateName: (v: string) => void;
 }
 
-function FolderNodeInner({ folder, colId, path, depth, collapsedNodes, toggleNode, confirmDelete, loadRequest, addToast, creatingIn, setCreatingIn, createName, setCreateName }: FolderNodeProps) {
+function FolderNodeInner({ folder, colId, scope = 'local', path, depth, collapsedNodes, toggleNode, confirmDelete, loadRequest, addToast, creatingIn, setCreatingIn, createName, setCreateName }: FolderNodeProps) {
+  const g = scope === 'global';
   const nodeKey = `${colId}:${folder.id}`;
   const open = !collapsedNodes.has(nodeKey);
   const total = countItems(folder.folders, folder.requests);
@@ -435,10 +479,10 @@ function FolderNodeInner({ folder, colId, path, depth, collapsedNodes, toggleNod
   const submitCreate = () => {
     if (!creatingIn || !createName.trim()) return;
     if (creatingIn.type === 'folder') {
-      postMessage({ type: 'createFolder', collectionId: colId, name: createName.trim(), parentPath: creatingIn.path });
+      postMessage({ type: g ? 'createGlobalFolder' : 'createFolder', collectionId: colId, name: createName.trim(), parentPath: creatingIn.path });
     } else {
       const req: any = { id: Date.now().toString(), name: createName.trim(), method: 'GET', url: '', params: [], headers: [], body: { type: 'none' }, auth: { type: 'none' } };
-      postMessage({ type: 'saveRequest', data: { collectionId: colId, folderPath: creatingIn.path, request: req } });
+      postMessage({ type: g ? 'saveGlobalRequest' : 'saveRequest', data: { collectionId: colId, folderPath: creatingIn.path, request: req } });
     }
     setCreateName('');
     setCreatingIn(null);
@@ -474,7 +518,7 @@ function FolderNodeInner({ folder, colId, path, depth, collapsedNodes, toggleNod
             onClick={(e) => {
               e.stopPropagation();
               confirmDelete('Delete Folder', `Delete "${folder.name}" and all contents?`, () => {
-                postMessage({ type: 'deleteFolder', collectionId: colId, folderPath: path });
+                postMessage({ type: g ? 'deleteGlobalFolder' : 'deleteFolder', collectionId: colId, folderPath: path });
                 addToast({ type: 'info', message: `Folder "${folder.name}" deleted` });
               });
             }}
@@ -491,6 +535,7 @@ function FolderNodeInner({ folder, colId, path, depth, collapsedNodes, toggleNod
               key={sub.id}
               folder={sub}
               colId={colId}
+              scope={scope}
               path={[...path, sub.id]}
               depth={depth + 1}
               collapsedNodes={collapsedNodes}
@@ -505,7 +550,7 @@ function FolderNodeInner({ folder, colId, path, depth, collapsedNodes, toggleNod
             />
           ))}
           {folder.requests.map((req) => (
-            <RequestRow key={req.id} req={req} colId={colId} folderPath={path} depth={depth + 1} confirmDelete={confirmDelete} loadRequest={loadRequest} addToast={addToast} />
+            <RequestRow key={req.id} req={req} colId={colId} scope={scope} folderPath={path} depth={depth + 1} confirmDelete={confirmDelete} loadRequest={loadRequest} addToast={addToast} />
           ))}
         </div>
       )}
@@ -513,8 +558,8 @@ function FolderNodeInner({ folder, colId, path, depth, collapsedNodes, toggleNod
   );
 }
 
-function RequestRow({ req, colId, folderPath, depth, confirmDelete, loadRequest, addToast }: {
-  req: ApiRequest; colId: string; folderPath: string[]; depth: number;
+function RequestRow({ req, colId, scope = 'local', folderPath, depth, confirmDelete, loadRequest, addToast }: {
+  req: ApiRequest; colId: string; scope?: 'local' | 'global'; folderPath: string[]; depth: number;
   confirmDelete: (t: string, m: string, fn: () => void) => void; loadRequest: (r: ApiRequest, folderPath?: string[]) => void; addToast: (t: { type: 'success' | 'error' | 'info'; message: string }) => void;
 }) {
   const pl = 8 + depth * 16;
@@ -523,6 +568,7 @@ function RequestRow({ req, colId, folderPath, depth, confirmDelete, loadRequest,
   const matchingTab = tabs.find((t) => t.sourceRequestId === req.id);
   const isActive = matchingTab?.id === activeTabId;
   const bg = matchingTab ? (isActive ? 'var(--vsc-list-active)' : 'var(--vsc-list-hover)') : undefined;
+  const g = scope === 'global';
   return (
     <div
       className={`flex items-center gap-2 pr-2 py-[5px] transition-colors ${!matchingTab ? 'hover:bg-[var(--vsc-list-hover)]' : ''}`}
@@ -538,7 +584,7 @@ function RequestRow({ req, colId, folderPath, depth, confirmDelete, loadRequest,
         style={{ color: 'var(--vsc-error)' }}
         title="Delete request"
         onClick={() => confirmDelete('Delete API Endpoint', `Permanently delete "${req.name || req.url}" and its history? This cannot be undone.`, () => {
-          postMessage({ type: 'deleteRequest', collectionId: colId, requestId: req.id, folderPath: folderPath.length ? folderPath : undefined });
+          postMessage({ type: g ? 'deleteGlobalRequest' : 'deleteRequest', collectionId: colId, requestId: req.id, folderPath: folderPath.length ? folderPath : undefined });
           addToast({ type: 'info', message: 'API endpoint and related history deleted' });
         })}
       ><Trash2 size={11} /></button>

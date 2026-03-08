@@ -8,9 +8,13 @@ import { HistoryTreeProvider } from './services/historyTree';
 import { SnapshotTreeProvider, SnapshotItem, SnapshotRecordItem } from './services/snapshotTree';
 import { ApiRequest } from './core/types';
 import { parseOpenApiSpec } from './core/openApiParser';
-import { loadCollections, saveCollections, loadEnvironments, saveEnvironments, loadHistory, loadSnapshots } from './storage/fileStore';
+import { loadCollections, saveCollections, loadEnvironments, saveEnvironments, loadHistory, loadSnapshots, getGlobalStoragePath, loadGlobalCollections, loadGlobalEnvironments, loadGlobalHistory, loadGlobalActiveEnvironmentId } from './storage/fileStore';
 
 export function activate(context: vscode.ExtensionContext) {
+  const outputChannel = vscode.window.createOutputChannel('Open Post');
+  context.subscriptions.push(outputChannel);
+  OpenPostPanel.outputChannel = outputChannel;
+
   const collectionTree = new CollectionTreeProvider();
   const environmentTree = new EnvironmentTreeProvider();
   const historyTree = new HistoryTreeProvider();
@@ -159,6 +163,29 @@ export function activate(context: vscode.ExtensionContext) {
     historyTree.refresh();
     snapshotTree.refresh();
   };
+
+  // Watch global storage for cross-window sync
+  const globalDir = getGlobalStoragePath();
+  if (!fs.existsSync(globalDir)) { fs.mkdirSync(globalDir, { recursive: true }); }
+  const globalWatcher = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(vscode.Uri.file(globalDir), '*.json')
+  );
+  let debounce: NodeJS.Timeout | undefined;
+  const reloadGlobal = () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => {
+      const panel = OpenPostPanel.currentPanel;
+      if (!panel) return;
+      panel.sendToWebview({ type: 'globalCollections', data: loadGlobalCollections() });
+      panel.sendToWebview({ type: 'globalEnvironments', data: loadGlobalEnvironments() });
+      panel.sendToWebview({ type: 'globalHistory', data: loadGlobalHistory() });
+      panel.sendToWebview({ type: 'globalActiveEnvironment', id: loadGlobalActiveEnvironmentId() });
+    }, 500);
+  };
+  globalWatcher.onDidChange(reloadGlobal);
+  globalWatcher.onDidCreate(reloadGlobal);
+  globalWatcher.onDidDelete(reloadGlobal);
+  context.subscriptions.push(globalWatcher);
 }
 
 export function deactivate() {}

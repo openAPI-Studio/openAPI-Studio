@@ -1,7 +1,12 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { Collection, Environment, HistoryEntry, CookieEntry, Snapshot } from '../core/types';
+
+// === Global Storage ===
+const GLOBAL_STORAGE_DIR = path.join(os.homedir(), '.openpost', 'global');
+export function getGlobalStoragePath(): string { return GLOBAL_STORAGE_DIR; }
 
 function getStoragePath(): string | undefined {
   const folders = vscode.workspace.workspaceFolders;
@@ -148,4 +153,32 @@ export function saveSnapshots(snapshots: Snapshot[]) {
     records: s.records.slice(-100),
   }));
   writeJson(path.join(dir, 'snapshots.json'), trimmed);
+}
+
+// === Global Storage ===
+export function loadGlobalCollections(): Collection[] {
+  return readJson(path.join(GLOBAL_STORAGE_DIR, 'collections.json'), []);
+}
+export function saveGlobalCollections(collections: Collection[]) {
+  writeJson(path.join(GLOBAL_STORAGE_DIR, 'collections.json'), collections);
+}
+export function loadGlobalEnvironments(): Environment[] {
+  return readJson(path.join(GLOBAL_STORAGE_DIR, 'environments.json'), []);
+}
+export function saveGlobalEnvironments(environments: Environment[]) {
+  writeJson(path.join(GLOBAL_STORAGE_DIR, 'environments.json'), environments);
+}
+export function loadGlobalHistory(): HistoryEntry[] {
+  return readJson(path.join(GLOBAL_STORAGE_DIR, 'history.json'), []);
+}
+export function saveGlobalHistory(history: HistoryEntry[]) {
+  writeJson(path.join(GLOBAL_STORAGE_DIR, 'history.json'), history.slice(-500));
+}
+export function loadGlobalActiveEnvironmentId(): string | null {
+  const config = readJson<{ activeEnvironmentId?: string }>(path.join(GLOBAL_STORAGE_DIR, 'config.json'), {});
+  return config.activeEnvironmentId || null;
+}
+export function saveGlobalActiveEnvironmentId(id: string | null) {
+  const config = readJson<Record<string, unknown>>(path.join(GLOBAL_STORAGE_DIR, 'config.json'), {});
+  writeJson(path.join(GLOBAL_STORAGE_DIR, 'config.json'), { ...config, activeEnvironmentId: id });
 }

@@ -107,6 +107,7 @@ function getOrCreateBucket(contracts: ContractStatusBucket[], status: number): C
 export class OpenPostPanel {
   public static currentPanel: OpenPostPanel | undefined;
   public static onDataChanged: (() => void) | undefined;
+  public static outputChannel: vscode.OutputChannel | undefined;
   private readonly panel: vscode.WebviewPanel;
   private readonly extensionUri: vscode.Uri;
   private disposables: vscode.Disposable[] = [];
@@ -118,7 +119,9 @@ export class OpenPostPanel {
     this.panel.webview.html = this.getHtml();
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
     this.panel.webview.onDidReceiveMessage(
-      (msg: MessageToExtension) => this.handleMessage(msg),
+      (msg: MessageToExtension) => this.handleMessage(msg).catch((err) => {
+        OpenPostPanel.outputChannel?.appendLine(`[ERROR] handleMessage crash: ${err}`);
+      }),
       null,
       this.disposables
     );
@@ -613,6 +616,115 @@ export class OpenPostPanel {
         this.pendingContractPrompts.delete(msg.promptId);
         break;
       }
+
+      // === Global Storage ===
+      case 'log': {
+        const { level, message, data } = msg as any;
+        OpenPostPanel.outputChannel?.appendLine(`[${level?.toUpperCase() || 'LOG'}] ${message}${data ? ' ' + String(data).slice(0, 2000) : ''}`);
+        return;
+      }
+      case 'loadGlobalCollections':
+        this.postMessage({ type: 'globalCollections', data: store.loadGlobalCollections() });
+        break;
+      case 'createGlobalCollection': {
+        const gc = store.loadGlobalCollections();
+        gc.push({ id: Date.now().toString(), name: msg.name, folders: [], requests: [], variables: [] });
+        store.saveGlobalCollections(gc);
+        this.postMessage({ type: 'globalCollections', data: gc });
+        break;
+      }
+      case 'deleteGlobalCollection': {
+        const gc = store.loadGlobalCollections().filter(c => c.id !== msg.id);
+        store.saveGlobalCollections(gc);
+        this.postMessage({ type: 'globalCollections', data: gc });
+        break;
+      }
+      case 'saveGlobalRequest': {
+        const gc = store.loadGlobalCollections();
+        const gcol = gc.find(c => c.id === msg.data.collectionId);
+        if (gcol) {
+          const parent = resolveFolder(gcol, msg.data.folderPath);
+          if (parent) {
+            const idx = parent.requests.findIndex(r => r.id === msg.data.request.id);
+            if (idx >= 0) { parent.requests[idx] = msg.data.request; }
+            else { parent.requests.push(msg.data.request); }
+            store.saveGlobalCollections(gc);
+          }
+        }
+        this.postMessage({ type: 'globalCollections', data: gc });
+        break;
+      }
+      case 'deleteGlobalRequest': {
+        const gc = store.loadGlobalCollections();
+        const gcol = gc.find(c => c.id === msg.collectionId);
+        if (gcol) {
+          const parent = resolveFolder(gcol, msg.folderPath);
+          if (parent) {
+            parent.requests = parent.requests.filter(r => r.id !== msg.requestId);
+            store.saveGlobalCollections(gc);
+          }
+        }
+        this.postMessage({ type: 'globalCollections', data: gc });
+        break;
+      }
+      case 'createGlobalFolder': {
+        const gc = store.loadGlobalCollections();
+        const gcol = gc.find(c => c.id === msg.collectionId);
+        if (gcol) {
+          const parent = resolveFolder(gcol, msg.parentPath);
+          if (parent) {
+            parent.folders.push({ id: Date.now().toString(), name: msg.name, requests: [], folders: [] });
+            store.saveGlobalCollections(gc);
+          }
+        }
+        this.postMessage({ type: 'globalCollections', data: gc });
+        break;
+      }
+      case 'deleteGlobalFolder': {
+        const gc = store.loadGlobalCollections();
+        const gcol = gc.find(c => c.id === msg.collectionId);
+        if (gcol && msg.folderPath.length > 0) {
+          const parentPath = msg.folderPath.slice(0, -1);
+          const folderId = msg.folderPath[msg.folderPath.length - 1];
+          const parent = resolveFolder(gcol, parentPath);
+          if (parent) {
+            parent.folders = parent.folders.filter(f => f.id !== folderId);
+            store.saveGlobalCollections(gc);
+          }
+        }
+        this.postMessage({ type: 'globalCollections', data: gc });
+        break;
+      }
+      case 'loadGlobalEnvironments':
+        this.postMessage({ type: 'globalEnvironments', data: store.loadGlobalEnvironments() });
+        this.postMessage({ type: 'globalActiveEnvironment', id: store.loadGlobalActiveEnvironmentId() });
+        break;
+      case 'saveGlobalEnvironment': {
+        const ge = store.loadGlobalEnvironments();
+        const idx = ge.findIndex(e => e.id === msg.data.id);
+        if (idx >= 0) { ge[idx] = msg.data; } else { ge.push(msg.data); }
+        store.saveGlobalEnvironments(ge);
+        this.postMessage({ type: 'globalEnvironments', data: ge });
+        break;
+      }
+      case 'deleteGlobalEnvironment': {
+        const ge = store.loadGlobalEnvironments().filter(e => e.id !== msg.id);
+        store.saveGlobalEnvironments(ge);
+        this.postMessage({ type: 'globalEnvironments', data: ge });
+        break;
+      }
+      case 'setGlobalActiveEnvironment':
+        store.saveGlobalActiveEnvironmentId(msg.id);
+        this.postMessage({ type: 'globalActiveEnvironment', id: msg.id });
+        break;
+      case 'loadGlobalHistory':
+        this.postMessage({ type: 'globalHistory', data: store.loadGlobalHistory() });
+        break;
+      case 'clearGlobalHistory':
+        store.saveGlobalHistory([]);
+        this.postMessage({ type: 'globalHistory', data: [] });
+        break;
+
       case 'exportCollection': {
         const { toPostmanFormat } = require('./collectionTree');
         const collections = store.loadCollections();

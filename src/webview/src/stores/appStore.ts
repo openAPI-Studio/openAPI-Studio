@@ -45,6 +45,10 @@ interface AppState {
   confirmDialog: ConfirmDialog | null;
   snapshots: Snapshot[];
   viewedSnapshotRecord: { snapshotId: string; record: SnapshotRecord } | null;
+  globalCollections: Collection[];
+  globalEnvironments: Environment[];
+  globalHistory: HistoryEntry[];
+  globalActiveEnvironmentId: string | null;
   setResponse: (r: ApiResponse | null) => void;
   setViewedHistoryId: (id: string | null) => void;
   setLoading: (l: boolean) => void;
@@ -73,6 +77,10 @@ interface AppState {
   hideConfirm: () => void;
   setSnapshots: (s: Snapshot[]) => void;
   setViewedSnapshotRecord: (v: { snapshotId: string; record: SnapshotRecord } | null) => void;
+  setGlobalCollections: (c: Collection[]) => void;
+  setGlobalEnvironments: (e: Environment[]) => void;
+  setGlobalHistory: (h: HistoryEntry[]) => void;
+  setGlobalActiveEnvironmentId: (id: string | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -102,6 +110,10 @@ export const useAppStore = create<AppState>((set) => ({
   confirmDialog: null,
   snapshots: [],
   viewedSnapshotRecord: null,
+  globalCollections: [],
+  globalEnvironments: [],
+  globalHistory: [],
+  globalActiveEnvironmentId: null,
   setResponse: (response) => {
     const { activeTabId, updateTab } = useTabStore.getState();
     updateTab(activeTabId, { response, error: null });
@@ -145,6 +157,10 @@ export const useAppStore = create<AppState>((set) => ({
   hideConfirm: () => set({ confirmDialog: null }),
   setSnapshots: (snapshots) => set({ snapshots }),
   setViewedSnapshotRecord: (viewedSnapshotRecord) => set({ viewedSnapshotRecord }),
+  setGlobalCollections: (globalCollections) => set({ globalCollections }),
+  setGlobalEnvironments: (globalEnvironments) => set({ globalEnvironments }),
+  setGlobalHistory: (globalHistory) => set({ globalHistory }),
+  setGlobalActiveEnvironmentId: (globalActiveEnvironmentId) => set({ globalActiveEnvironmentId }),
 }));
 
 // Sync response/loading/error from active tab when tab changes

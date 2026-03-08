@@ -202,7 +202,11 @@ export type MessageToWebview =
   | { type: 'cookies'; data: CookieEntry[] }
   | { type: 'tabSettings'; data: { tabViewCollapsed: boolean; tabGrouping: boolean } }
   | { type: 'snapshots'; data: Snapshot[] }
-  | { type: 'contractVariantPrompt'; data: ContractVariantPrompt };
+  | { type: 'contractVariantPrompt'; data: ContractVariantPrompt }
+  | { type: 'globalCollections'; data: Collection[] }
+  | { type: 'globalEnvironments'; data: Environment[] }
+  | { type: 'globalHistory'; data: HistoryEntry[] }
+  | { type: 'globalActiveEnvironment'; id: string | null };
 
 export type MessageToExtension =
   | { type: 'sendRequest'; data: ApiRequest; sslVerification?: boolean }
@@ -238,4 +242,18 @@ export type MessageToExtension =
   | { type: 'deleteSnapshot'; id: string }
   | { type: 'deleteSnapshotRecord'; snapshotId: string; recordId: string }
   | { type: 'renameSnapshot'; id: string; name: string }
-  | { type: 'resolveContractVariantPrompt'; promptId: string; save: boolean };
+  | { type: 'resolveContractVariantPrompt'; promptId: string; save: boolean }
+  | { type: 'loadGlobalCollections' }
+  | { type: 'createGlobalCollection'; name: string }
+  | { type: 'deleteGlobalCollection'; id: string }
+  | { type: 'saveGlobalRequest'; data: { collectionId: string; folderPath?: string[]; request: ApiRequest } }
+  | { type: 'deleteGlobalRequest'; collectionId: string; requestId: string; folderPath?: string[] }
+  | { type: 'createGlobalFolder'; collectionId: string; name: string; parentPath?: string[] }
+  | { type: 'deleteGlobalFolder'; collectionId: string; folderPath: string[] }
+  | { type: 'loadGlobalEnvironments' }
+  | { type: 'saveGlobalEnvironment'; data: Environment }
+  | { type: 'deleteGlobalEnvironment'; id: string }
+  | { type: 'setGlobalActiveEnvironment'; id: string | null }
+  | { type: 'loadGlobalHistory' }
+  | { type: 'clearGlobalHistory' }
+  | { type: 'log'; level: 'info' | 'warn' | 'error'; message: string; data?: string };
