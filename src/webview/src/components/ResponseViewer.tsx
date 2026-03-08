@@ -25,12 +25,15 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { err
   }
 }
 
-type Lang = 'json' | 'xml' | 'html' | 'javascript' | 'css' | 'text';
-const LANGS: Lang[] = ['json', 'xml', 'html', 'javascript', 'css', 'text'];
+type Lang = 'json' | 'xml' | 'html' | 'javascript' | 'css' | 'yaml' | 'graphql' | 'typescript' | 'text';
+const LANGS: Lang[] = ['json', 'xml', 'html', 'yaml', 'graphql', 'typescript', 'javascript', 'css', 'text'];
 
 function detectLang(ct: string, body: string): Lang {
   const c = (ct || '').toLowerCase();
   if (c.includes('json')) return 'json';
+  if (c.includes('yaml') || c.includes('yml')) return 'yaml';
+  if (c.includes('graphql')) return 'graphql';
+  if (c.includes('typescript')) return 'typescript';
   if (c.includes('xml')) return 'xml';
   if (c.includes('html')) return 'html';
   if (c.includes('javascript') || c.includes('ecmascript')) return 'javascript';
@@ -39,6 +42,7 @@ function detectLang(ct: string, body: string): Lang {
   if (t.startsWith('{') || t.startsWith('[')) return 'json';
   if (t.startsWith('<!DOCTYPE html') || t.startsWith('<html')) return 'html';
   if (t.startsWith('<?xml') || t.startsWith('<')) return 'xml';
+  if (/^(type |query |mutation |subscription |schema |enum |input |interface )/.test(t)) return 'graphql';
   return 'text';
 }
 
@@ -293,11 +297,6 @@ export function ResponseViewer() {
   let parsedJson: unknown = null;
   try { parsedJson = JSON.parse(response.body); } catch { /* not json */ }
 
-  const copyBody = () => {
-    navigator.clipboard.writeText(response.body);
-    addToast({ type: 'info', message: 'Response copied to clipboard' });
-  };
-
   const deleteHistoryEntry = (entryId: string) => {
     if (viewedHistoryId === entryId) {
       setViewedHistoryId(null);
@@ -330,15 +329,21 @@ export function ResponseViewer() {
         );
       })()}
       {/* Status bar */}
-      <div className="flex flex-col gap-1.5 rounded-md px-3 py-2" style={{ background: 'var(--vsc-input-bg)' }}>
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase tracking-wider font-semibold opacity-40">Response</span>
-          <div className="flex items-center gap-1.5">
-            <button onClick={copyBody} className="btn-ghost text-[11px] flex items-center gap-1 opacity-50 hover:opacity-100" title="Copy response body">
-              <Copy size={11} /> Copy
-            </button>
-            {urlHistory.length > 0 && (
-          <div className="relative">
+      <div className="flex items-center gap-3 px-1">
+        <span
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold"
+          style={{ background: statusColor, color: '#000' }}
+        >
+          {response.status} {response.statusText}
+        </span>
+        <span className="flex items-center gap-1 text-[11px] opacity-50">
+          <Clock size={10} /> <span className="font-medium">{response.time} ms</span>
+        </span>
+        <span className="flex items-center gap-1 text-[11px] opacity-50">
+          <ArrowDownToLine size={10} /> <span className="font-medium">{formatSize(response.size)}</span>
+        </span>
+        {urlHistory.length > 0 && (
+          <div className="relative ml-auto">
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setShowHistoryMenu(!showHistoryMenu)}
@@ -400,23 +405,6 @@ export function ResponseViewer() {
             )}
           </div>
         )}
-          </div>
-        </div>
-        <div className="flex items-center gap-3 mt-1">
-          <span
-            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold"
-            style={{ background: statusColor, color: '#000' }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#000', opacity: 0.25 }} />
-            {response.status} {response.statusText}
-          </span>
-          <span className="flex items-center gap-1 text-[11px] opacity-50">
-            <Clock size={10} /> <span className="opacity-70">Time</span> <span className="font-medium">{response.time} ms</span>
-          </span>
-          <span className="flex items-center gap-1 text-[11px] opacity-50">
-            <ArrowDownToLine size={10} /> <span className="opacity-70">Size</span> <span className="font-medium">{formatSize(response.size)}</span>
-          </span>
-        </div>
       </div>
 
       {activeSnapshot && contractBuckets.length > 0 && (
@@ -665,6 +653,101 @@ export function ResponseViewer() {
   );
 }
 
+function inferJsonType(val: unknown, indent = ''): string {
+  if (val === null) return 'null';
+  if (Array.isArray(val)) {
+    if (val.length === 0) return 'unknown[]';
+    return inferJsonType(val[0], indent) + '[]';
+  }
+  if (typeof val === 'object') {
+    const entries = Object.entries(val as Record<string, unknown>);
+    if (entries.length === 0) return '{}';
+    const inner = indent + '  ';
+    const fields = entries.map(([k, v]) => `${inner}${k}: ${inferJsonType(v, inner)};`).join('\n');
+    return `{\n${fields}\n${indent}}`;
+  }
+  return typeof val; // string | number | boolean
+}
+
+function extractSchema(body: string, lang: Lang): string {
+  const UNSUPPORTED = ['html', 'javascript', 'css', 'text'] as const;
+  if ((UNSUPPORTED as readonly string[]).includes(lang)) return `Schema extraction not supported for ${lang}`;
+
+  try {
+    if (lang === 'json') {
+      const parsed = JSON.parse(body);
+      if (Array.isArray(parsed)) return `type Response = ${inferJsonType(parsed[0] ?? null)}[];`;
+      return `interface Response ${inferJsonType(parsed)}`;
+    }
+
+    if (lang === 'yaml') {
+      const lines = body.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
+      const fields: string[] = [];
+      for (const line of lines) {
+        const m = line.match(/^(\s*)([\w.-]+)\s*:\s*(.*)/);
+        if (!m) continue;
+        const [, , key, val] = m;
+        const v = val.trim();
+        let t = 'string';
+        if (v === '' || v === '~' || v === 'null') t = 'null';
+        else if (v === 'true' || v === 'false') t = 'boolean';
+        else if (/^-?\d+(\.\d+)?$/.test(v)) t = 'number';
+        else if (v.startsWith('[')) t = 'unknown[]';
+        fields.push(`  ${key}: ${t};`);
+      }
+      if (fields.length === 0) return 'Failed to parse yaml: no key-value pairs found';
+      return `interface Response {\n${fields.join('\n')}\n}`;
+    }
+
+    if (lang === 'xml') {
+      const elements = new Map<string, { attrs: Set<string>; children: Set<string>; hasText: boolean }>();
+      const tagRe = /<(\/?)(\w[\w:-]*)((?:\s+[\w:-]+(?:="[^"]*"|='[^']*'))*)\s*(\/?)>/g;
+      let m: RegExpExecArray | null;
+      while ((m = tagRe.exec(body)) !== null) {
+        const [, closing, tag, attrStr, selfClose] = m;
+        if (!elements.has(tag)) elements.set(tag, { attrs: new Set(), children: new Set(), hasText: false });
+        const el = elements.get(tag)!;
+        const attrRe = /([\w:-]+)=/g;
+        let am: RegExpExecArray | null;
+        while ((am = attrRe.exec(attrStr)) !== null) el.attrs.add(am[1]);
+        if (!closing && !selfClose) {
+          // find parent context — simplified: look for next closing tag content
+          const after = body.slice(m.index + m[0].length, m.index + m[0].length + 500);
+          const childTags = after.match(/<(\w[\w:-]*)/g);
+          if (childTags) childTags.forEach(ct => el.children.add(ct.slice(1)));
+          if (/^[^<]+/.test(after) && after.match(/^[^<]+/)?.[0].trim()) el.hasText = true;
+        }
+      }
+      if (elements.size === 0) return 'Failed to parse xml: no elements found';
+      const out: string[] = [];
+      elements.forEach((info, tag) => {
+        const parts: string[] = [];
+        info.attrs.forEach(a => parts.push(`@${a}: string`));
+        info.children.forEach(c => parts.push(`${c}: ${c}`));
+        if (info.hasText) parts.push('#text: string');
+        out.push(`interface ${tag} {\n${parts.map(p => '  ' + p + ';').join('\n')}\n}`);
+      });
+      return out.join('\n\n');
+    }
+
+    if (lang === 'graphql') {
+      const blocks = body.match(/(type|input|interface|enum|scalar|union)\s+\w+[^}]*\}/gs);
+      if (!blocks || blocks.length === 0) return 'Failed to parse graphql: no type definitions found';
+      return blocks.join('\n\n');
+    }
+
+    if (lang === 'typescript') {
+      const blocks = body.match(/(export\s+)?(interface|type|enum)\s+\w+[^}]*\}/gs);
+      if (!blocks || blocks.length === 0) return 'Failed to parse typescript: no type declarations found';
+      return blocks.join('\n\n');
+    }
+
+    return `Schema extraction not supported for ${lang}`;
+  } catch (e: any) {
+    return `Failed to parse ${lang}: ${e.message || e}`;
+  }
+}
+
 function ResponseBody({ body, lang, addToast }: { body: string; lang: Lang; addToast: (t: { type: 'success' | 'error' | 'info'; message: string }) => void }) {
   const [collapsed, setCollapsed] = React.useState<Set<number>>(new Set());
   const formatted = React.useMemo(() => {
@@ -702,15 +785,31 @@ function ResponseBody({ body, lang, addToast }: { body: string; lang: Lang; addT
 
   const gutterW = String(cappedLines.length).length * 8 + 16;
 
+  const copySchema = () => {
+    const schema = extractSchema(body, lang);
+    const failed = schema.startsWith('Failed') || schema.startsWith('Schema extraction not');
+    navigator.clipboard.writeText(schema);
+    addToast({ type: failed ? 'error' : 'info', message: failed ? schema : 'Schema copied' });
+  };
+
   return (
     <div className="max-h-[500px] overflow-auto relative">
-      <button
-        className="absolute top-1 right-2 z-10 btn-ghost text-[10px] flex items-center gap-1 opacity-30 hover:opacity-100"
-        onClick={() => { navigator.clipboard.writeText(body); addToast({ type: 'info', message: 'Copied' }); }}
-        title="Copy"
-      >
-        <Copy size={10} /> Copy
-      </button>
+      <div className="absolute top-1 right-2 z-10 flex items-center gap-1">
+        <button
+          className="btn-ghost text-[10px] flex items-center gap-1 opacity-30 hover:opacity-100"
+          onClick={copySchema}
+          title="Copy Schema"
+        >
+          <Copy size={10} /> Schema
+        </button>
+        <button
+          className="btn-ghost text-[10px] flex items-center gap-1 opacity-30 hover:opacity-100"
+          onClick={() => { navigator.clipboard.writeText(body); addToast({ type: 'info', message: 'Copied' }); }}
+          title="Copy"
+        >
+          <Copy size={10} /> Copy
+        </button>
+      </div>
       {truncated && (
         <div className="px-2.5 py-1 text-[10px] opacity-50" style={{ background: 'rgba(255,200,0,0.08)' }}>
           Showing first 5,000 of {lines.length.toLocaleString()} lines

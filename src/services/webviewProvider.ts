@@ -158,6 +158,7 @@ export class OpenPostPanel {
   }
 
   private async handleMessage(msg: MessageToExtension) {
+    OpenPostPanel.outputChannel?.appendLine(`[MSG] type=${msg.type}`);
     switch (msg.type) {
       case 'sendRequest': {
         try {
@@ -640,16 +641,24 @@ export class OpenPostPanel {
         break;
       }
       case 'saveGlobalRequest': {
+        const oc = OpenPostPanel.outputChannel;
+        oc?.appendLine(`[saveGlobalRequest] collectionId=${msg.data.collectionId} requestId=${msg.data.request.id} name=${msg.data.request.name} folderPath=${JSON.stringify(msg.data.folderPath)}`);
         const gc = store.loadGlobalCollections();
+        oc?.appendLine(`[saveGlobalRequest] loaded ${gc.length} global collections: ${gc.map(c => c.id + '=' + c.name).join(', ')}`);
         const gcol = gc.find(c => c.id === msg.data.collectionId);
         if (gcol) {
           const parent = resolveFolder(gcol, msg.data.folderPath);
+          oc?.appendLine(`[saveGlobalRequest] found collection "${gcol.name}", resolveFolder=${parent ? 'OK' : 'NULL'}, existing requests=${parent?.requests.length}`);
           if (parent) {
             const idx = parent.requests.findIndex(r => r.id === msg.data.request.id);
+            oc?.appendLine(`[saveGlobalRequest] request index=${idx} (${idx >= 0 ? 'update' : 'insert'})`);
             if (idx >= 0) { parent.requests[idx] = msg.data.request; }
             else { parent.requests.push(msg.data.request); }
             store.saveGlobalCollections(gc);
+            oc?.appendLine(`[saveGlobalRequest] saved OK`);
           }
+        } else {
+          oc?.appendLine(`[saveGlobalRequest] ERROR: collection not found for id=${msg.data.collectionId}`);
         }
         this.postMessage({ type: 'globalCollections', data: gc });
         break;

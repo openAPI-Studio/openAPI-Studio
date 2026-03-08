@@ -87,7 +87,9 @@ export function RequestBuilder() {
   const saveUpdate = () => {
     if (!sourceCollectionId) return;
     const req = toApiRequest();
-    postMessage({ type: sourceScope === 'global' ? 'saveGlobalRequest' : 'saveRequest', data: { collectionId: sourceCollectionId, folderPath: sourceFolderPath || undefined, request: req } });
+    const msgType = sourceScope === 'global' ? 'saveGlobalRequest' : 'saveRequest';
+    postMessage({ type: 'log', level: 'info', message: `[saveUpdate] scope=${sourceScope} msgType=${msgType} colId=${sourceCollectionId} reqId=${req.id}` });
+    postMessage({ type: msgType, data: { collectionId: sourceCollectionId, folderPath: sourceFolderPath || undefined, request: req } });
     addToast({ type: 'success', message: 'Request updated' });
   };
 
