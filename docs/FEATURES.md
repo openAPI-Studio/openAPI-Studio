@@ -376,8 +376,8 @@ For saved requests with a snapshot contract, the response viewer tracks unique r
 
 - Uniqueness is based on response status + JSON structure (field/type shape), not exact values.
 - When a new unique response shape is detected for a status, Open Post prompts you to save or skip it.
-- Saved variants are grouped by status in **Contract Responses** and the latest saved variant is marked as default.
-- Each variant keeps a per-status timeline of when that shape was observed.
+- The main response panel shows only unique statuses in **Contract Responses**.
+- Clicking a status opens a dedicated modal with large response type definitions and full per-status version history timeline.
 
 ### Status Bar
 

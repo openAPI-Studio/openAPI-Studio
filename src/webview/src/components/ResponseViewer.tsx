@@ -23,6 +23,7 @@ export function ResponseViewer() {
   const url = useRequestStore((s) => s.url);
   const sourceRequestId = useRequestStore((s) => s.sourceRequestId);
   const [showHistoryMenu, setShowHistoryMenu] = React.useState(false);
+  const [selectedContractStatus, setSelectedContractStatus] = React.useState<number | null>(null);
 
   // Filter history for current URL
   const urlHistory = React.useMemo(
@@ -58,6 +59,10 @@ export function ResponseViewer() {
         .sort((a, b) => a.status - b.status);
     },
     [activeSnapshot],
+  );
+  const selectedContractBucket = React.useMemo(
+    () => (selectedContractStatus === null ? null : contractBuckets.find((bucket) => bucket.status === selectedContractStatus) || null),
+    [contractBuckets, selectedContractStatus],
   );
 
   if (loading) {
@@ -264,36 +269,103 @@ export function ResponseViewer() {
         <div className="rounded p-2.5" style={{ background: 'var(--vsc-input-bg)' }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] uppercase tracking-wider font-semibold opacity-40">Contract Responses</span>
-            <span className="text-[10px] opacity-40">Latest unique type per status is marked</span>
+            <span className="text-[10px] opacity-40">Click a status to view response type versions</span>
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {contractBuckets.map((bucket) => {
               const variants = [...bucket.variants].sort((a, b) => b.lastSeen - a.lastSeen);
               return (
-                <div key={bucket.status} className="rounded" style={{ border: '1px solid var(--vsc-border-visible)' }}>
-                  <div className="px-2 py-1 text-[11px] font-semibold" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
-                    Status {bucket.status} · {variants.length} unique type{variants.length !== 1 ? 's' : ''}
-                  </div>
-                  <div className="max-h-[220px] overflow-auto">
-                    {variants.map((variant) => (
-                      <div key={variant.id} className="px-2 py-1.5 text-[11px]" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                        <div className="flex items-center gap-2 mb-1">
-                          {bucket.latestVariantId === variant.id && (
-                            <span className="text-[9px] px-1 rounded" style={{ background: 'var(--vsc-success)', color: '#000' }}>LATEST</span>
-                          )}
-                          <span className="opacity-50">Seen {variant.occurrences}×</span>
-                          <span className="opacity-50">Last: {formatTime(variant.lastSeen)}</span>
-                        </div>
-                        <pre className="text-[10px] opacity-75 whitespace-pre-wrap break-all">{variant.summary}</pre>
-                        <p className="text-[10px] opacity-40 mt-1">History: {variant.history.map((h) => formatTime(h.timestamp)).join(' → ')}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <button
+                  key={bucket.status}
+                  onClick={() => setSelectedContractStatus(bucket.status)}
+                  className="px-2 py-1 rounded text-[11px] font-medium flex items-center gap-1.5 transition-opacity hover:opacity-100 opacity-90"
+                  style={{ border: '1px solid var(--vsc-border-visible)', background: 'var(--vsc-editor-bg)' }}
+                  title={`Open status ${bucket.status} response type history`}
+                >
+                  <span
+                    className="px-1 rounded text-[10px] font-semibold"
+                    style={{
+                      color: '#000',
+                      background: bucket.status < 300 ? 'var(--vsc-success)' : bucket.status < 400 ? 'var(--vsc-warning)' : 'var(--vsc-error)',
+                    }}
+                  >
+                    {bucket.status}
+                  </span>
+                  <span className="opacity-70">{variants.length} type{variants.length !== 1 ? 's' : ''}</span>
+                </button>
               );
             })}
           </div>
         </div>
+      )}
+
+      {selectedContractBucket && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setSelectedContractStatus(null)} />
+          <div
+            className="fixed left-1/2 top-1/2 z-50 w-[95vw] max-w-[960px] -translate-x-1/2 -translate-y-1/2 rounded flex flex-col"
+            style={{ background: 'var(--vsc-editor-bg)', border: '1px solid var(--vsc-border-visible)', maxHeight: '80vh' }}
+          >
+            <div className="flex items-center justify-between px-3 py-2 shrink-0" style={{ borderBottom: '1px solid var(--vsc-border-visible)' }}>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold">Status {selectedContractBucket.status}</span>
+                <span className="text-[11px] opacity-50">{selectedContractBucket.variants.length} response type version{selectedContractBucket.variants.length !== 1 ? 's' : ''}</span>
+              </div>
+              <button className="btn-ghost p-1" onClick={() => setSelectedContractStatus(null)} title="Close contract details">
+                <X size={12} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-3 flex flex-col gap-2">
+              {[...selectedContractBucket.variants]
+                .sort((a, b) => b.lastSeen - a.lastSeen)
+                .map((variant) => (
+                  <div key={variant.id} className="rounded p-2" style={{ border: '1px solid var(--vsc-border-visible)', background: 'var(--vsc-input-bg)' }}>
+                    <div className="flex items-center gap-2 mb-1.5 text-[11px]">
+                      {selectedContractBucket.latestVariantId === variant.id && (
+                        <span className="text-[9px] px-1 rounded" style={{ background: 'var(--vsc-success)', color: '#000' }}>LATEST</span>
+                      )}
+                      <span className="opacity-70">Seen {variant.occurrences}×</span>
+                      <span className="opacity-50">First: {formatDateTime(variant.firstSeen)}</span>
+                      <span className="opacity-50">Last: {formatDateTime(variant.lastSeen)}</span>
+                    </div>
+                    <p className="text-[10px] uppercase tracking-wider opacity-50 mb-1">Type Signature</p>
+                    <pre
+                      className="text-[10px] whitespace-pre-wrap break-all p-2 rounded max-h-[220px] overflow-auto"
+                      style={{ background: 'var(--vsc-editor-bg)' }}
+                    >
+                      {variant.signature || variant.summary}
+                    </pre>
+                    {variant.summary && variant.summary !== variant.signature && (
+                      <>
+                        <p className="text-[10px] uppercase tracking-wider opacity-50 mt-2 mb-1">Summary</p>
+                        <pre
+                          className="text-[10px] whitespace-pre-wrap break-all p-2 rounded max-h-[120px] overflow-auto"
+                          style={{ background: 'var(--vsc-editor-bg)' }}
+                        >
+                          {variant.summary}
+                        </pre>
+                      </>
+                    )}
+                    <p className="text-[10px] uppercase tracking-wider opacity-50 mt-2 mb-1">Version History</p>
+                    <div className="text-[10px] opacity-70 max-h-[120px] overflow-auto">
+                      {variant.history.length > 0 ? (
+                        variant.history
+                          .slice()
+                          .sort((a, b) => a.timestamp - b.timestamp)
+                          .map((historyItem, index) => (
+                            <div key={`${variant.id}-${historyItem.recordId}-${index}`} className="py-0.5">
+                              v{index + 1} · {formatDateTime(historyItem.timestamp)}
+                            </div>
+                          ))
+                      ) : (
+                        <div className="opacity-40">No history available</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </>
       )}
 
       {/* Tabs */}
@@ -479,4 +551,9 @@ function formatSize(bytes: number): string {
 function formatTime(ts: number): string {
   const d = new Date(ts);
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function formatDateTime(ts: number): string {
+  const d = new Date(ts);
+  return d.toLocaleString();
 }
