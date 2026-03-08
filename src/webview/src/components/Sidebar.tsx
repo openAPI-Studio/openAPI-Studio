@@ -28,10 +28,10 @@ export function Sidebar() {
   const openRequest = useTabStore((s) => s.openRequest);
 
   /** Open request in new tab, loading last response from history if available */
-  const openReq = (r: ApiRequest, collectionId?: string, folderPath?: string[]) => {
+  const openReq = (r: ApiRequest, collectionId?: string, folderPath?: string[], scope?: 'local' | 'global') => {
     const allHistory = [...history, ...globalHistory];
     const lastHistory = allHistory.slice().reverse().find((h) => h.request.url === r.url && h.request.method === r.method);
-    openRequest(r, collectionId, folderPath, lastHistory?.response ?? null);
+    openRequest(r, collectionId, folderPath, lastHistory?.response ?? null, scope);
   };
   const addToast = useAppStore((s) => s.addToast);
   const showConfirm = useAppStore((s) => s.showConfirm);
@@ -207,7 +207,7 @@ export function Sidebar() {
                 collapsedNodes={collapsedNodes}
                 toggleNode={toggleNode}
                 confirmDelete={confirmDelete}
-                loadRequest={(r, folderPath) => openReq(r, col.id, folderPath)}
+                loadRequest={(r, folderPath) => openReq(r, col.id, folderPath, 'global')}
                 addToast={addToast}
                 creatingIn={creatingIn}
                 setCreatingIn={setCreatingIn}
