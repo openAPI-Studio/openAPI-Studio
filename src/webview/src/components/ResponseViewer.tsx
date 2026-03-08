@@ -342,6 +342,23 @@ export function ResponseViewer() {
         <span className="flex items-center gap-1 text-[11px] opacity-50">
           <ArrowDownToLine size={10} /> <span className="font-medium">{formatSize(response.size)}</span>
         </span>
+        {activeSnapshot && contractBuckets.length > 0 && (
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] opacity-30 mr-0.5">|</span>
+            {contractBuckets.map((bucket) => (
+              <button
+                key={bucket.status}
+                onClick={() => setSelectedContractStatus(bucket.status)}
+                className="px-1.5 py-0 rounded text-[10px] font-medium flex items-center gap-1 transition-opacity hover:opacity-100 opacity-70"
+                style={{ border: '1px solid var(--vsc-border-visible)' }}
+                title={`Status ${bucket.status}: ${bucket.variants.length} type${bucket.variants.length !== 1 ? 's' : ''}`}
+              >
+                <span className="px-0.5 rounded text-[9px] font-semibold" style={{ color: '#000', background: bucket.status < 300 ? 'var(--vsc-success)' : bucket.status < 400 ? 'var(--vsc-warning)' : 'var(--vsc-error)' }}>{bucket.status}</span>
+                <span className="opacity-60">{bucket.variants.length}T</span>
+              </button>
+            ))}
+          </div>
+        )}
         {urlHistory.length > 0 && (
           <div className="relative ml-auto">
             <div className="flex items-center gap-1">
@@ -406,40 +423,6 @@ export function ResponseViewer() {
           </div>
         )}
       </div>
-
-      {activeSnapshot && contractBuckets.length > 0 && (
-        <div className="rounded p-2.5" style={{ background: 'var(--vsc-input-bg)' }}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] uppercase tracking-wider font-semibold opacity-40">Contract Responses</span>
-            <span className="text-[10px] opacity-40">Click a status to view response type versions</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {contractBuckets.map((bucket) => {
-              const variants = [...bucket.variants].sort((a, b) => b.lastSeen - a.lastSeen);
-              return (
-                <button
-                  key={bucket.status}
-                  onClick={() => setSelectedContractStatus(bucket.status)}
-                  className="px-2 py-1 rounded text-[11px] font-medium flex items-center gap-1.5 transition-opacity hover:opacity-100 opacity-90"
-                  style={{ border: '1px solid var(--vsc-border-visible)', background: 'var(--vsc-editor-bg)' }}
-                  title={`Open status ${bucket.status} response type history`}
-                >
-                  <span
-                    className="px-1 rounded text-[10px] font-semibold"
-                    style={{
-                      color: '#000',
-                      background: bucket.status < 300 ? 'var(--vsc-success)' : bucket.status < 400 ? 'var(--vsc-warning)' : 'var(--vsc-error)',
-                    }}
-                  >
-                    {bucket.status}
-                  </span>
-                  <span className="opacity-70">{variants.length} type{variants.length !== 1 ? 's' : ''}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {selectedContractBucket && (
         <>

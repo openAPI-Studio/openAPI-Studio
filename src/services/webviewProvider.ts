@@ -624,6 +624,12 @@ export class OpenPostPanel {
         OpenPostPanel.outputChannel?.appendLine(`[${level?.toUpperCase() || 'LOG'}] ${message}${data ? ' ' + String(data).slice(0, 2000) : ''}`);
         return;
       }
+      case 'loadSession':
+        this.postMessage({ type: 'session', data: store.loadSession() });
+        break;
+      case 'saveSession':
+        store.saveSession((msg as any).data);
+        break;
       case 'loadGlobalCollections':
         this.postMessage({ type: 'globalCollections', data: store.loadGlobalCollections() });
         break;

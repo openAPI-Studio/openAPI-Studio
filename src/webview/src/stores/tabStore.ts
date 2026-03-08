@@ -83,6 +83,15 @@ interface TabStore {
   moveTabToGroup: (tabId: string, groupId: string | null) => void;
   addTabToNewGroup: (tabId: string) => void;
   reorderTab: (tabId: string, targetIdx: number, targetGroupId: string | null) => void;
+  restoreSession: (data: { tabs: Tab[]; groups: TabGroup[]; activeTabId: string }) => void;
+}
+
+export function getSessionData(state: { tabs: Tab[]; groups: TabGroup[]; activeTabId: string }) {
+  return {
+    tabs: state.tabs.map(t => ({ ...t, response: null, error: null, loading: false })),
+    groups: state.groups,
+    activeTabId: state.activeTabId,
+  };
 }
 
 const initialTab = newTab();
@@ -214,4 +223,10 @@ export const useTabStore = create<TabStore>((set, get) => ({
     }
     return { tabs, groups };
   }),
+
+  restoreSession: (data) => {
+    if (!data || !Array.isArray(data.tabs) || data.tabs.length === 0) return;
+    const tabs = data.tabs.map((t: any) => ({ ...t, response: null, error: null, loading: false }));
+    set({ tabs, groups: data.groups || [], activeTabId: data.activeTabId || tabs[0].id });
+  },
 }));

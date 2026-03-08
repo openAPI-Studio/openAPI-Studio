@@ -206,7 +206,8 @@ export type MessageToWebview =
   | { type: 'globalCollections'; data: Collection[] }
   | { type: 'globalEnvironments'; data: Environment[] }
   | { type: 'globalHistory'; data: HistoryEntry[] }
-  | { type: 'globalActiveEnvironment'; id: string | null };
+  | { type: 'globalActiveEnvironment'; id: string | null }
+  | { type: 'session'; data: unknown };
 
 export type MessageToExtension =
   | { type: 'sendRequest'; data: ApiRequest; sslVerification?: boolean }
@@ -256,4 +257,6 @@ export type MessageToExtension =
   | { type: 'setGlobalActiveEnvironment'; id: string | null }
   | { type: 'loadGlobalHistory' }
   | { type: 'clearGlobalHistory' }
-  | { type: 'log'; level: 'info' | 'warn' | 'error'; message: string; data?: string };
+  | { type: 'log'; level: 'info' | 'warn' | 'error'; message: string; data?: string }
+  | { type: 'loadSession' }
+  | { type: 'saveSession'; data: unknown };

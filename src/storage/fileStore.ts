@@ -155,6 +155,18 @@ export function saveSnapshots(snapshots: Snapshot[]) {
   writeJson(path.join(dir, 'snapshots.json'), trimmed);
 }
 
+export function loadSession(): unknown {
+  const dir = getStoragePath();
+  if (!dir) { return null; }
+  return readJson(path.join(dir, 'session.json'), null);
+}
+
+export function saveSession(data: unknown) {
+  const dir = getStoragePath();
+  if (!dir) { return; }
+  writeJson(path.join(dir, 'session.json'), data);
+}
+
 // === Global Storage ===
 export function loadGlobalCollections(): Collection[] {
   return readJson(path.join(GLOBAL_STORAGE_DIR, 'collections.json'), []);

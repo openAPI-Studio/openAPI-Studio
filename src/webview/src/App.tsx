@@ -10,7 +10,7 @@ import { ConfirmDialog } from './components/ConfirmDialog';
 import { TabBar } from './components/TabBar';
 import { useAppStore } from './stores/appStore';
 import { useRequestStore } from './stores/requestStore';
-import { useTabStore } from './stores/tabStore';
+import { useTabStore, getSessionData } from './stores/tabStore';
 import { onMessage, postMessage, ApiRequest, ApiResponse, CookieEntry } from './types/messages';
 
 class WebviewErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; message: string }> {
@@ -158,6 +158,13 @@ export default function App() {
           case 'globalActiveEnvironment':
             useAppStore.getState().setGlobalActiveEnvironmentId((m as any).id);
             break;
+          case 'session': {
+            const d = (m as any).data;
+            if (d && Array.isArray(d.tabs) && d.tabs.length > 0) {
+              useTabStore.getState().restoreSession(d);
+            }
+            break;
+          }
         }
       } catch (err) {
         console.error('Open Post message handling error', err);
@@ -175,6 +182,19 @@ export default function App() {
     postMessage({ type: 'loadGlobalCollections' });
     postMessage({ type: 'loadGlobalEnvironments' });
     postMessage({ type: 'loadGlobalHistory' });
+    postMessage({ type: 'loadSession' });
+  }, []);
+
+  // Auto-save session on tab changes (1s debounce)
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const unsub = useTabStore.subscribe((state) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        postMessage({ type: 'saveSession', data: getSessionData(state) });
+      }, 1000);
+    });
+    return () => { unsub(); clearTimeout(timer); };
   }, []);
 
   return (
