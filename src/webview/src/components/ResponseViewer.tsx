@@ -173,7 +173,9 @@ export function ResponseViewer() {
   const setViewedSnapshotRecord = useAppStore((s) => s.setViewedSnapshotRecord);
   const url = useRequestStore((s) => s.url);
   const sourceRequestId = useRequestStore((s) => s.sourceRequestId);
+  const pendingContractPrompt = useAppStore((s) => s.pendingContractPrompt);
   const [showHistoryMenu, setShowHistoryMenu] = React.useState(false);
+  const [showContractMenu, setShowContractMenu] = React.useState(false);
   const [selectedContractStatus, setSelectedContractStatus] = React.useState<number | null>(null);
 
   const ct = (latestResponse?.headers?.['content-type'] || '');
@@ -357,6 +359,49 @@ export function ResponseViewer() {
                 <span className="opacity-60">{bucket.variants.length}T</span>
               </button>
             ))}
+          </div>
+        )}
+        {pendingContractPrompt && (
+          <div className="relative">
+            <button
+              className="contract-indicator"
+              style={{ color: 'var(--vsc-info)' }}
+              onClick={() => setShowContractMenu(!showContractMenu)}
+            >
+              contract changed
+            </button>
+            {showContractMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowContractMenu(false)} />
+                <div
+                  className="absolute left-0 top-full mt-1 z-50 rounded shadow-vsc py-1 min-w-[120px]"
+                  style={{ background: 'var(--vsc-dropdown-bg)', border: '1px solid var(--vsc-dropdown-border)' }}
+                >
+                  <button
+                    className="w-full px-3 py-1.5 text-[11px] text-left transition-colors hover:bg-vsc-list-hover"
+                    onClick={() => {
+                      postMessage({ type: 'resolveContractVariantPrompt', promptId: pendingContractPrompt.promptId, save: true });
+                      useAppStore.getState().setPendingContractPrompt(null);
+                      addToast({ type: 'info', message: 'New response type saved to contract' });
+                      setShowContractMenu(false);
+                    }}
+                  >
+                    Save Type
+                  </button>
+                  <button
+                    className="w-full px-3 py-1.5 text-[11px] text-left transition-colors hover:bg-vsc-list-hover"
+                    onClick={() => {
+                      postMessage({ type: 'resolveContractVariantPrompt', promptId: pendingContractPrompt.promptId, save: false });
+                      useAppStore.getState().setPendingContractPrompt(null);
+                      addToast({ type: 'info', message: 'Skipped saving new response type' });
+                      setShowContractMenu(false);
+                    }}
+                  >
+                    Skip
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
         {urlHistory.length > 0 && (

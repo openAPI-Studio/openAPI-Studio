@@ -36,3 +36,5 @@ coverage/
 PRD.txt
 
 *.vsix
+
+.kiro/*

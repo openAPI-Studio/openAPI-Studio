@@ -252,7 +252,8 @@ type MessageToWebview =
   | { type: 'activeEnvironment'; id: string | null }
   | { type: 'filePicked';        purpose: string; filePath: string; fileName: string }
   | { type: 'snapshots';         data: Snapshot[] }
-  | { type: 'contractVariantPrompt'; data: ContractVariantPrompt };
+  | { type: 'contractVariantPrompt'; data: ContractVariantPrompt }
+  | { type: 'tabSettings';          data: { tabViewCollapsed: boolean; tabGrouping: boolean; subtleContracts: boolean } };
 ```
 
 There is also a non-protocol message sent when a saved request is clicked in the sidebar tree:
@@ -288,7 +289,9 @@ type MessageToExtension =
   | { type: 'deleteSnapshot';       id: string }
   | { type: 'deleteSnapshotRecord'; snapshotId: string; recordId: string }
   | { type: 'renameSnapshot';       id: string; name: string }
-  | { type: 'resolveContractVariantPrompt'; promptId: string; save: boolean };
+  | { type: 'resolveContractVariantPrompt'; promptId: string; save: boolean }
+  | { type: 'setTabSetting';        key: 'tabViewCollapsed' | 'tabGrouping' | 'subtleContracts'; value: boolean }
+  | { type: 'loadTabSettings' };
 ```
 
 ### Snapshot behavior notes
@@ -374,6 +377,8 @@ useAppStore.getState().addToast({ type: 'success', message: 'Saved!' });
 | `hideConfirm` | `() => void` |
 | `setSnapshots` | `(s: Snapshot[]) => void` |
 | `setViewedSnapshotRecord` | `(v: { snapshotId: string; record: SnapshotRecord } \| null) => void` |
+| `setSubtleContracts` | `(v: boolean) => void` |
+| `setPendingContractPrompt` | `(p: ContractVariantPrompt \| null) => void` |
 
 **Toast shape:**
 ```typescript
@@ -648,6 +653,11 @@ function loadSnapshots(): Snapshot[]
 function saveSnapshots(data: Snapshot[]): void
 // Caps at 200 snapshots; each snapshot is capped at 100 records.
 // Older entries beyond these limits are trimmed on save.
+
+function loadTabSettings(): { tabViewCollapsed: boolean; tabGrouping: boolean; subtleContracts: boolean }
+function saveTabSetting(key: 'tabViewCollapsed' | 'tabGrouping' | 'subtleContracts', value: boolean): void
+// Reads/writes tab settings from .openpost/config.json.
+// Missing keys default to false.
 ```
 
 Implementation note: history is persisted on every send, then immediately reposted to the webview so response-history controls stay in sync without requiring a reload.

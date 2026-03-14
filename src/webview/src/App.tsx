@@ -11,7 +11,7 @@ import { TabBar } from './components/TabBar';
 import { useAppStore } from './stores/appStore';
 import { useRequestStore } from './stores/requestStore';
 import { useTabStore, getSessionData } from './stores/tabStore';
-import { onMessage, postMessage, ApiRequest, ApiResponse, CookieEntry } from './types/messages';
+import { onMessage, postMessage, ApiRequest, ApiResponse, CookieEntry, ContractVariantPrompt } from './types/messages';
 
 class WebviewErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; message: string }> {
   constructor(props: { children: React.ReactNode }) {
@@ -64,6 +64,8 @@ export default function App() {
   const setTabViewCollapsed = useAppStore((s) => s.setTabViewCollapsed);
   const tabGrouping = useAppStore((s) => s.tabGrouping);
   const setTabGrouping = useAppStore((s) => s.setTabGrouping);
+  const subtleContracts = useAppStore((s) => s.subtleContracts);
+  const setSubtleContracts = useAppStore((s) => s.setSubtleContracts);
   const allCookies = useAppStore((s) => s.allCookies);
   const [showSettings, setShowSettings] = useState(false);
   const [showCookieManager, setShowCookieManager] = useState(false);
@@ -111,21 +113,25 @@ export default function App() {
             useAppStore.getState().setSnapshots(m.data as ReturnType<typeof useAppStore.getState>['snapshots']);
             break;
           case 'contractVariantPrompt': {
-            const prompt = m.data as { promptId: string; status: number; summary: string };
-            showConfirm({
-              title: 'New Response Type',
-              message: `Status ${prompt.status} returned a new JSON structure. Save as a new contract type?`,
-              confirmText: 'Save Type',
-              cancelText: 'Skip',
-              onConfirm: () => {
-                postMessage({ type: 'resolveContractVariantPrompt', promptId: prompt.promptId, save: true });
-                addToast({ type: 'info', message: 'New response type saved to contract' });
-              },
-              onCancel: () => {
-                postMessage({ type: 'resolveContractVariantPrompt', promptId: prompt.promptId, save: false });
-                addToast({ type: 'info', message: 'Skipped saving new response type' });
-              },
-            });
+            const prompt = m.data as ContractVariantPrompt;
+            if (useAppStore.getState().subtleContracts) {
+              useAppStore.getState().setPendingContractPrompt(prompt);
+            } else {
+              showConfirm({
+                title: 'New Response Type',
+                message: `Status ${prompt.status} returned a new JSON structure. Save as a new contract type?`,
+                confirmText: 'Save Type',
+                cancelText: 'Skip',
+                onConfirm: () => {
+                  postMessage({ type: 'resolveContractVariantPrompt', promptId: prompt.promptId, save: true });
+                  addToast({ type: 'info', message: 'New response type saved to contract' });
+                },
+                onCancel: () => {
+                  postMessage({ type: 'resolveContractVariantPrompt', promptId: prompt.promptId, save: false });
+                  addToast({ type: 'info', message: 'Skipped saving new response type' });
+                },
+              });
+            }
             break;
           }
           case 'loadRequest': {
@@ -145,6 +151,7 @@ export default function App() {
             const ts = (m as any).data;
             useAppStore.getState().setTabViewCollapsed(ts.tabViewCollapsed);
             useAppStore.getState().setTabGrouping(ts.tabGrouping);
+            useAppStore.getState().setSubtleContracts(ts.subtleContracts);
             break;
           }
           case 'globalCollections':
@@ -262,6 +269,17 @@ export default function App() {
                     }}
                   />
                   Grouped Tabs
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer px-2.5 py-1.5 hover:opacity-80">
+                  <input
+                    type="checkbox"
+                    checked={subtleContracts}
+                    onChange={(e) => {
+                      setSubtleContracts(e.target.checked);
+                      postMessage({ type: 'setTabSetting', key: 'subtleContracts', value: e.target.checked });
+                    }}
+                  />
+                  Subtle Contracts
                 </label>
                 <div style={{ borderTop: '1px solid var(--vsc-border-visible)', margin: '2px 0' }} />
                 <button

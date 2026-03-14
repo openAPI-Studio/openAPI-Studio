@@ -75,6 +75,7 @@ open-post/
 │   │   └── fileStore.ts              ← Read/write .openpost/*.json in the workspace root.
 │   │                                    Simple JSON serialisation — no database.
 │   │                                    Returns empty arrays when no workspace folder is open.
+│   │                                    Also manages config.json tab settings (including subtleContracts).
 │   │
 │   └── webview/                      ← 🌐 SEPARATE TYPESCRIPT PROJECT (browser/ESM)
 │       │
@@ -97,6 +98,8 @@ open-post/
 │           │                            On mount: requests loadCollections + loadEnvironments + loadHistory + loadSnapshots.
 │           │                            Renders: top bar, collapsible sidebar, ResizableSplit (request/response),
 │           │                            optional code/prompt panel, ToastContainer, ConfirmDialog.
+│           │                            Settings panel includes Subtle Contracts toggle.
+│           │                            contractVariantPrompt handler branches on subtleContracts setting.
 │           │
 │           ├── components/
 │           │   ├── RequestBuilder.tsx      ← Main request editor.
@@ -111,6 +114,8 @@ open-post/
 │           │   │                             Per-URL history dropdown with single-entry delete.
 │           │   │                             Diff mode using viewedHistoryId from appStore.
 │           │   │                             Snapshot record banner using viewedSnapshotRecord from appStore.
+│           │   │                             Inline ContractIndicator (glow animation) when
+│           │   │                             pendingContractPrompt is set and subtleContracts is on.
 │           │   │
 │           │   ├── Sidebar.tsx             ← Left sidebar panel.
 │           │   │                             Tab switcher: Collections | Environments | History | Snapshots.
@@ -168,6 +173,8 @@ open-post/
 │           │   │                             All UI state, server data, toast queue, confirm dialog.
 │           │   │                             Also holds `snapshots` array and `viewedSnapshotRecord`
 │           │   │                             for the snapshot record viewer banner.
+│           │   │                             `subtleContracts` boolean and `pendingContractPrompt`
+│           │   │                             for inline contract change notifications.
 │           │   └── requestStore.ts         ← Current request being edited (Zustand).
 │           │                                 toApiRequest() → serialise, loadRequest() → populate.
 │           │
@@ -187,6 +194,8 @@ open-post/
 │           └── styles/
 │               └── globals.css             ← Tailwind @layer base/components + VS Code CSS variable
 │                                             mappings (--vscode-* → --vsc-* shorthand aliases).
+│                                             @keyframes contract-glow animation and .contract-indicator
+│                                             class for the inline contract change indicator.
 │
 ├── dist/                             ← Build output (gitignored)
 │   ├── extension.js

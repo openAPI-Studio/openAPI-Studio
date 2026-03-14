@@ -187,3 +187,15 @@ button { border: none; }
 .group-header-close { opacity: 0; }
 *:hover > .group-header-close { opacity: 0.5; }
 .group-header-close:hover { opacity: 1 !important; }
+
+/* === Contract indicator glow animation === */
+@keyframes contract-glow {
+  0%, 100% { text-shadow: 0 0 4px var(--vsc-info); }
+  50% { text-shadow: 0 0 8px var(--vsc-info), 0 0 12px var(--vsc-info); }
+}
+
+.contract-indicator {
+  animation: contract-glow 2s ease-in-out infinite;
+  font-size: 11px;
+  cursor: pointer;
+}

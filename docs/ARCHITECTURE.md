@@ -189,6 +189,7 @@ All persistent data is stored in the **workspace root** under `.openpost/`:
 your-workspace/
 └── .openpost/
     ├── collections.json    → All collections, folders, and requests
+    ├── config.json         → Tab settings (tabViewCollapsed, tabGrouping, subtleContracts) + active env ID
     ├── environments.json   → All environments and their variables
     ├── history.json        → All history entries (request + response pairs)
     └── snapshots.json      → All snapshot contracts and their records
@@ -219,6 +220,8 @@ If no workspace folder is open, all load functions return empty arrays and save 
 | `saveActiveEnvironmentId(id)` | `void` | Write active env ID |
 | `loadSnapshots()` | `Snapshot[]` | Read snapshots.json |
 | `saveSnapshots(data)` | `void` | Write snapshots.json (capped: 200 snapshots, 100 records each) |
+| `loadTabSettings()` | `{ tabViewCollapsed, tabGrouping, subtleContracts }` | Read tab settings from config.json (defaults to `false` for missing keys) |
+| `saveTabSetting(key, value)` | `void` | Write a single tab setting key to config.json |
 
 ### Snapshot lifecycle
 
@@ -261,6 +264,8 @@ Manages everything that is application-wide (not specific to the current request
 | `confirmDialog` | `ConfirmDialog \| null` | Active confirm modal |
 | `snapshots` | `Snapshot[]` | All snapshot contracts |
 | `viewedSnapshotRecord` | `{ snapshotId: string; record: SnapshotRecord } \| null` | The record currently being viewed in the response panel (drives the snapshot banner) |
+| `subtleContracts` | `boolean` | When `true`, contract variant prompts use an inline indicator instead of a modal dialog (default `false`) |
+| `pendingContractPrompt` | `ContractVariantPrompt \| null` | The pending contract variant prompt stored for inline resolution when subtle mode is on |
 
 ### `requestStore` — Current Request Being Edited
 

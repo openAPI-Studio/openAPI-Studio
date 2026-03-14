@@ -268,6 +268,31 @@ type TestSource =
   | 'jsonpath' | 'header' | 'content-type' | 'content-length';
 ```
 
+## Contract Variant Prompt Flow
+
+When a saved request produces a response with a new unique JSON structure, the extension sends a `contractVariantPrompt` message to the webview. The handling branches based on the `subtleContracts` setting:
+
+- **`subtleContracts: false` (default)** — `App.tsx` shows a modal confirm dialog with "Save Type" / "Skip" buttons. This is the original behaviour.
+- **`subtleContracts: true`** — `App.tsx` stores the prompt data in `appStore.pendingContractPrompt` instead of showing a modal. A `ContractIndicator` element (inline in `ResponseViewer.tsx` status bar, before the history dropdown) renders with a CSS glow animation. Clicking it reveals a "Save Type" / "Skip" action menu. Resolving clears the pending prompt and sends `resolveContractVariantPrompt` to the extension.
+
+### Persisted Config Key
+
+`subtleContracts` is a boolean stored in `.openpost/config.json` alongside other tab settings (`tabViewCollapsed`, `tabGrouping`). It defaults to `false` when absent. Managed by `fileStore.ts` via `loadTabSettings()` / `saveTabSetting('subtleContracts', value)`.
+
+### Files Involved
+
+| File | What changed |
+|---|---|
+| `src/core/types.ts` | `subtleContracts` added to `tabSettings` data payload and `setTabSetting` key union |
+| `src/webview/src/types/messages.ts` | Mirrored type changes |
+| `src/storage/fileStore.ts` | `loadTabSettings` / `saveTabSetting` handle `subtleContracts` |
+| `src/webview/src/stores/appStore.ts` | `subtleContracts` boolean + `pendingContractPrompt` state |
+| `src/webview/src/App.tsx` | Settings checkbox, `contractVariantPrompt` handler branches on setting, restores setting from `tabSettings` message |
+| `src/webview/src/components/ResponseViewer.tsx` | Inline `ContractIndicator` in status bar |
+| `src/webview/src/styles/globals.css` | `@keyframes contract-glow` animation + `.contract-indicator` class |
+
+---
+
 ## Constraints & Rules
 
 This section codifies the expectations for contributions and automated

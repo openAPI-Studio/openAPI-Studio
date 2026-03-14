@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ApiResponse, Environment, Collection, HistoryEntry, CookieEntry, Snapshot, SnapshotRecord } from '../types/messages';
+import { ApiResponse, Environment, Collection, HistoryEntry, CookieEntry, Snapshot, SnapshotRecord, ContractVariantPrompt } from '../types/messages';
 import { useTabStore } from './tabStore';
 
 export interface Toast {
@@ -45,10 +45,14 @@ interface AppState {
   confirmDialog: ConfirmDialog | null;
   snapshots: Snapshot[];
   viewedSnapshotRecord: { snapshotId: string; record: SnapshotRecord } | null;
+  subtleContracts: boolean;
+  pendingContractPrompt: ContractVariantPrompt | null;
   globalCollections: Collection[];
   globalEnvironments: Environment[];
   globalHistory: HistoryEntry[];
   globalActiveEnvironmentId: string | null;
+  setSubtleContracts: (v: boolean) => void;
+  setPendingContractPrompt: (p: ContractVariantPrompt | null) => void;
   setResponse: (r: ApiResponse | null) => void;
   setViewedHistoryId: (id: string | null) => void;
   setLoading: (l: boolean) => void;
@@ -110,10 +114,14 @@ export const useAppStore = create<AppState>((set) => ({
   confirmDialog: null,
   snapshots: [],
   viewedSnapshotRecord: null,
+  subtleContracts: false,
+  pendingContractPrompt: null,
   globalCollections: [],
   globalEnvironments: [],
   globalHistory: [],
   globalActiveEnvironmentId: null,
+  setSubtleContracts: (subtleContracts) => set({ subtleContracts }),
+  setPendingContractPrompt: (pendingContractPrompt) => set({ pendingContractPrompt }),
   setResponse: (response) => {
     const { activeTabId, updateTab } = useTabStore.getState();
     updateTab(activeTabId, { response, error: null });

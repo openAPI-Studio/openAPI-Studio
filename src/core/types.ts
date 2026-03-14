@@ -200,7 +200,7 @@ export type MessageToWebview =
   | { type: 'activeEnvironment'; id: string | null }
   | { type: 'filePicked'; purpose: string; filePath: string; fileName: string }
   | { type: 'cookies'; data: CookieEntry[] }
-  | { type: 'tabSettings'; data: { tabViewCollapsed: boolean; tabGrouping: boolean } }
+  | { type: 'tabSettings'; data: { tabViewCollapsed: boolean; tabGrouping: boolean; subtleContracts: boolean } }
   | { type: 'snapshots'; data: Snapshot[] }
   | { type: 'contractVariantPrompt'; data: ContractVariantPrompt }
   | { type: 'globalCollections'; data: Collection[] }
@@ -236,7 +236,7 @@ export type MessageToExtension =
   | { type: 'exportCollection'; collectionId: string }
   | { type: 'importCollection' }
   | { type: 'loadTabSettings' }
-  | { type: 'setTabSetting'; key: 'tabViewCollapsed' | 'tabGrouping'; value: boolean }
+  | { type: 'setTabSetting'; key: 'tabViewCollapsed' | 'tabGrouping' | 'subtleContracts'; value: boolean }
   | { type: 'loadSnapshots' }
   | { type: 'saveSnapshot'; name?: string; baseRequest: ApiRequest }
   | { type: 'addSnapshotRecord'; snapshotId: string; request: ApiRequest; response: ApiResponse }

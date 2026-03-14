@@ -171,6 +171,80 @@ export interface Snapshot {
   responseContracts?: ContractStatusBucket[];
 }
 
+// Extension <-> Webview message protocol (mirrored from src/core/types.ts)
+export type TabSettingsData = { tabViewCollapsed: boolean; tabGrouping: boolean; subtleContracts: boolean };
+export type TabSettingKey = 'tabViewCollapsed' | 'tabGrouping' | 'subtleContracts';
+
+export type MessageToWebview =
+  | { type: 'response'; data: ApiResponse }
+  | { type: 'error'; message: string }
+  | { type: 'environments'; data: Environment[] }
+  | { type: 'collections'; data: Collection[] }
+  | { type: 'history'; data: HistoryEntry[] }
+  | { type: 'activeEnvironment'; id: string | null }
+  | { type: 'filePicked'; purpose: string; filePath: string; fileName: string }
+  | { type: 'cookies'; data: CookieEntry[] }
+  | { type: 'tabSettings'; data: TabSettingsData }
+  | { type: 'snapshots'; data: Snapshot[] }
+  | { type: 'contractVariantPrompt'; data: ContractVariantPrompt }
+  | { type: 'globalCollections'; data: Collection[] }
+  | { type: 'globalEnvironments'; data: Environment[] }
+  | { type: 'globalHistory'; data: HistoryEntry[] }
+  | { type: 'globalActiveEnvironment'; id: string | null }
+  | { type: 'session'; data: unknown };
+
+export type MessageToExtension =
+  | { type: 'sendRequest'; data: ApiRequest; sslVerification?: boolean }
+  | { type: 'saveRequest'; data: { collectionId: string; folderId?: string; folderPath?: string[]; request: ApiRequest } }
+  | { type: 'loadCollections' }
+  | { type: 'loadEnvironments' }
+  | { type: 'saveEnvironment'; data: Environment }
+  | { type: 'deleteEnvironment'; id: string }
+  | { type: 'setActiveEnvironment'; id: string | null }
+  | { type: 'loadHistory' }
+  | { type: 'createCollection'; name: string }
+  | { type: 'deleteCollection'; id: string }
+  | { type: 'deleteRequest'; collectionId: string; requestId: string; folderPath?: string[] }
+  | { type: 'createFolder'; collectionId: string; name: string; parentPath?: string[] }
+  | { type: 'deleteFolder'; collectionId: string; folderPath: string[] }
+  | { type: 'runPreRequestScript'; script: string; request: ApiRequest }
+  | { type: 'runTestScript'; script: string; request: ApiRequest; response: ApiResponse }
+  | { type: 'pickFile'; purpose: string }
+  | { type: 'clearHistory' }
+  | { type: 'deleteHistory'; id: string }
+  | { type: 'loadCookies' }
+  | { type: 'saveCookie'; data: CookieEntry }
+  | { type: 'deleteCookie'; domain: string; name: string; path: string }
+  | { type: 'clearCookies' }
+  | { type: 'setCookiesEnabled'; enabled: boolean }
+  | { type: 'exportCollection'; collectionId: string }
+  | { type: 'importCollection' }
+  | { type: 'loadTabSettings' }
+  | { type: 'setTabSetting'; key: TabSettingKey; value: boolean }
+  | { type: 'loadSnapshots' }
+  | { type: 'saveSnapshot'; name?: string; baseRequest: ApiRequest }
+  | { type: 'addSnapshotRecord'; snapshotId: string; request: ApiRequest; response: ApiResponse }
+  | { type: 'deleteSnapshot'; id: string }
+  | { type: 'deleteSnapshotRecord'; snapshotId: string; recordId: string }
+  | { type: 'renameSnapshot'; id: string; name: string }
+  | { type: 'resolveContractVariantPrompt'; promptId: string; save: boolean }
+  | { type: 'loadGlobalCollections' }
+  | { type: 'createGlobalCollection'; name: string }
+  | { type: 'deleteGlobalCollection'; id: string }
+  | { type: 'saveGlobalRequest'; data: { collectionId: string; folderPath?: string[]; request: ApiRequest } }
+  | { type: 'deleteGlobalRequest'; collectionId: string; requestId: string; folderPath?: string[] }
+  | { type: 'createGlobalFolder'; collectionId: string; name: string; parentPath?: string[] }
+  | { type: 'deleteGlobalFolder'; collectionId: string; folderPath: string[] }
+  | { type: 'loadGlobalEnvironments' }
+  | { type: 'saveGlobalEnvironment'; data: Environment }
+  | { type: 'deleteGlobalEnvironment'; id: string }
+  | { type: 'setGlobalActiveEnvironment'; id: string | null }
+  | { type: 'loadGlobalHistory' }
+  | { type: 'clearGlobalHistory' }
+  | { type: 'log'; level: 'info' | 'warn' | 'error'; message: string; data?: string }
+  | { type: 'loadSession' }
+  | { type: 'saveSession'; data: unknown };
+
 // VS Code webview API
 interface VsCodeApi {
   postMessage(msg: unknown): void;

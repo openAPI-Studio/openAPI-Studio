@@ -23,8 +23,9 @@ A complete reference for every user-facing feature in Open Post.
 15. [OpenAPI / Swagger Import](#openapi--swagger-import)
 16. [Postman Collection Import / Export](#postman-collection-import--export)
 17. [Settings](#settings)
-18. [Keyboard Shortcuts](#keyboard-shortcuts)
-19. [Snapshots](#snapshots)
+18. [Subtle Contract Notifications](#subtle-contract-notifications)
+19. [Keyboard Shortcuts](#keyboard-shortcuts)
+20. [Snapshots](#snapshots)
 
 ---
 
@@ -382,12 +383,13 @@ For saved requests with a snapshot contract, the response viewer tracks unique r
 ### Status Bar
 
 ```
- 200 OK    342ms    1.2 KB    [Copy]
+ 200 OK    342ms    1.2 KB    [contract changed]    [Copy]
 ```
 
 - Status code with a colour indicator (green 2xx, yellow 3xx, red 4xx/5xx)
 - Response time in milliseconds
 - Response body size in bytes / KB / MB
+- **Contract changed indicator** — appears when a new contract variant is detected and Subtle Contracts mode is enabled (see [Subtle Contract Notifications](#subtle-contract-notifications))
 - **Copy** — copies the raw body to the clipboard
 
 ### Body Tab View Modes
@@ -647,7 +649,32 @@ Click the **⚙ gear icon** in the top bar of the Open Post panel.
 | Setting | Default | Description |
 |---|---|---|
 | **SSL Verification** | On | Verify SSL certificates when making HTTPS requests. Turn off for local dev servers with self-signed certs |
+| **Subtle Contracts** | Off | When enabled, contract variant prompts appear as a non-blocking inline indicator in the response status bar instead of a modal dialog. See [Subtle Contract Notifications](#subtle-contract-notifications) |
 | **Clear All History** | — | Wipes the entire history (shown with a confirm dialog before deleting) |
+
+---
+
+## Subtle Contract Notifications
+
+By default, when a new unique response shape is detected for a saved request's contract, Open Post shows a **modal dialog** asking whether to save or skip the new type. This can interrupt your workflow if you are sending many requests in quick succession.
+
+Enable **Subtle Contracts** in the settings panel to replace the modal with a non-blocking inline indicator.
+
+### How It Works
+
+1. Toggle **Subtle Contracts** on in the settings gear menu.
+2. When a new contract variant is detected, a small **"contract changed"** label appears in the response status bar (before the history dropdown) instead of a modal.
+3. The indicator uses a subtle glow animation to draw your attention without blocking interaction.
+4. Click the indicator to reveal an inline action menu with **Save Type** and **Skip** options.
+5. Choosing **Save Type** saves the new response structure to the contract and shows a confirmation toast.
+6. Choosing **Skip** dismisses the notification and shows a skip toast.
+7. The indicator disappears once you act on it.
+
+When Subtle Contracts is off, the existing modal confirm dialog behaviour is preserved.
+
+### Persistence
+
+The `subtleContracts` setting is stored in `.openpost/config.json` alongside other tab settings and survives restarts.
 
 ---
 
