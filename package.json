@@ -2,7 +2,7 @@
   "name": "open-post",
   "displayName": "Open Post",
   "description": "API Testing. Inside Your Code.",
-  "version": "0.9.34",
+  "version": "1.0.0",
   "publisher": "open-post",
   "icon": "chat.png",
   "repository": {
@@ -33,100 +33,60 @@
   "main": "./dist/extension.js",
   "activationEvents": [],
   "contributes": {
-    "commands": [
-      {
-        "command": "openPost.open",
-        "title": "Open Post: New Request",
-        "icon": "$(add)"
-      },
-      {
-        "command": "openPost.openCollection",
-        "title": "Open Post: Open Collection"
-      },
-      {
-        "command": "openPost.addCollection",
-        "title": "New Collection",
-        "icon": "$(new-folder)"
-      },
-      {
-        "command": "openPost.addEnvironment",
-        "title": "New Environment",
-        "icon": "$(add)"
-      },
-      {
-        "command": "openPost.deleteCollection",
-        "title": "Delete",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "openPost.deleteEnvironment",
-        "title": "Delete",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "openPost.addRequest",
-        "title": "New Request",
-        "icon": "$(add)"
-      },
-      {
-        "command": "openPost.addFolder",
-        "title": "New Folder",
-        "icon": "$(new-folder)"
-      },
-      {
-        "command": "openPost.clearHistory",
-        "title": "Clear History",
-        "icon": "$(clear-all)"
-      },
-      {
-        "command": "openPost.deleteHistoryEntry",
-        "title": "Delete History Entry",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "openPost.renameRequest",
-        "title": "Rename",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "openPost.setActiveEnvironment",
-        "title": "Set Active"
-      },
-      {
-        "command": "openPost.exportCollection",
-        "title": "Export Collection",
-        "icon": "$(desktop-download)"
-      },
-      {
-        "command": "openPost.importCollection",
-        "title": "Import Collection",
-        "icon": "$(folder-opened)"
-      },
-      {
-        "command": "openPost.importOpenApi",
-        "title": "Import OpenAPI / Swagger",
-        "icon": "$(symbol-interface)"
-      },
-      {
-        "command": "openPost.deleteSnapshot",
-        "title": "Delete Snapshot",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "openPost.renameSnapshot",
-        "title": "Rename Snapshot",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "openPost.deleteSnapshotRecord",
-        "title": "Delete Record",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "openPost.openSnapshotRecord",
-        "title": "Open Record",
-        "icon": "$(go-to-file)"
+    "configuration": {
+      "title": "Open Post",
+      "properties": {
+        "openPost.sslVerification": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable SSL certificate verification for HTTPS requests."
+        },
+        "openPost.cookiesEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically store and send cookies across requests."
+        },
+        "openPost.collapsedTabs": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show tabs in a compact collapsed view."
+        },
+        "openPost.groupedTabs": {
+          "type": "boolean",
+          "default": false,
+          "description": "Group tabs by collection."
+        },
+        "openPost.subtleContracts": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show contract validation notifications in a subtle, non-intrusive style."
+        }
       }
+    },
+    "commands": [
+      { "command": "openPost.open", "title": "Open Post: New Request", "icon": "$(add)" },
+      { "command": "openPost.openCollection", "title": "Open Post: Open Collection" },
+      { "command": "openPost.addCollection", "title": "New Collection", "icon": "$(new-folder)" },
+      { "command": "openPost.addGlobalCollection", "title": "New Global Collection", "icon": "$(new-folder)" },
+      { "command": "openPost.deleteCollection", "title": "Delete", "icon": "$(trash)" },
+      { "command": "openPost.addRequest", "title": "New Request", "icon": "$(add)" },
+      { "command": "openPost.addFolder", "title": "New Folder", "icon": "$(new-folder)" },
+      { "command": "openPost.renameRequest", "title": "Rename", "icon": "$(edit)" },
+      { "command": "openPost.exportCollection", "title": "Export Collection", "icon": "$(desktop-download)" },
+      { "command": "openPost.importCollection", "title": "Import Collection", "icon": "$(folder-opened)" },
+      { "command": "openPost.importGlobalCollection", "title": "Import Global Collection", "icon": "$(folder-opened)" },
+      { "command": "openPost.importOpenApi", "title": "Import OpenAPI / Swagger", "icon": "$(symbol-interface)" },
+      { "command": "openPost.addEnvironment", "title": "New Environment", "icon": "$(add)" },
+      { "command": "openPost.addGlobalEnvironment", "title": "New Global Environment", "icon": "$(add)" },
+      { "command": "openPost.deleteEnvironment", "title": "Delete", "icon": "$(trash)" },
+      { "command": "openPost.setActiveEnvironment", "title": "Set Active" },
+      { "command": "openPost.clearHistory", "title": "Clear Local History", "icon": "$(clear-all)" },
+      { "command": "openPost.clearGlobalHistory", "title": "Clear Global History", "icon": "$(clear-all)" },
+      { "command": "openPost.deleteHistoryEntry", "title": "Delete History Entry", "icon": "$(trash)" },
+      { "command": "openPost.deleteSnapshot", "title": "Delete Snapshot", "icon": "$(trash)" },
+      { "command": "openPost.renameSnapshot", "title": "Rename Snapshot", "icon": "$(edit)" },
+      { "command": "openPost.deleteSnapshotRecord", "title": "Delete Record", "icon": "$(trash)" },
+      { "command": "openPost.openSnapshotRecord", "title": "Open Record", "icon": "$(go-to-file)" }
     ],
     "viewsContainers": {
       "activitybar": [
@@ -159,111 +119,52 @@
     },
     "menus": {
       "view/title": [
-        {
-          "command": "openPost.addCollection",
-          "when": "view == openPost.collections",
-          "group": "navigation"
-        },
-        {
-          "command": "openPost.importCollection",
-          "when": "view == openPost.collections",
-          "group": "navigation"
-        },
-        {
-          "command": "openPost.importOpenApi",
-          "when": "view == openPost.collections"
-        },
-        {
-          "command": "openPost.open",
-          "when": "view == openPost.collections",
-          "group": "navigation"
-        },
-        {
-          "command": "openPost.addEnvironment",
-          "when": "view == openPost.environments",
-          "group": "navigation"
-        },
-        {
-          "command": "openPost.clearHistory",
-          "when": "view == openPost.history",
-          "group": "navigation"
-        },
-        {
-          "command": "openPost.open",
-          "when": "view == openPost.snapshots",
-          "group": "navigation"
-        }
+        { "command": "openPost.addCollection", "when": "view == openPost.collections", "group": "navigation" },
+        { "command": "openPost.importCollection", "when": "view == openPost.collections", "group": "navigation" },
+        { "command": "openPost.importOpenApi", "when": "view == openPost.collections" },
+        { "command": "openPost.open", "when": "view == openPost.collections", "group": "navigation" },
+        { "command": "openPost.addEnvironment", "when": "view == openPost.environments", "group": "navigation" },
+        { "command": "openPost.clearHistory", "when": "view == openPost.history", "group": "navigation" },
+        { "command": "openPost.open", "when": "view == openPost.snapshots", "group": "navigation" }
       ],
       "view/item/context": [
-        {
-          "command": "openPost.addRequest",
-          "when": "view == openPost.collections && viewItem == collection",
-          "group": "inline"
-        },
-        {
-          "command": "openPost.addRequest",
-          "when": "view == openPost.collections && viewItem == folder",
-          "group": "inline"
-        },
-        {
-          "command": "openPost.addFolder",
-          "when": "view == openPost.collections && viewItem == collection",
-          "group": "inline"
-        },
-        {
-          "command": "openPost.addFolder",
-          "when": "view == openPost.collections && viewItem == folder",
-          "group": "inline"
-        },
-        {
-          "command": "openPost.exportCollection",
-          "when": "view == openPost.collections && viewItem == collection",
-          "group": "inline"
-        },
-        {
-          "command": "openPost.deleteCollection",
-          "when": "view == openPost.collections && viewItem == collection",
-          "group": "inline"
-        },
-        {
-          "command": "openPost.deleteEnvironment",
-          "when": "view == openPost.environments && viewItem == environment",
-          "group": "inline"
-        },
-        {
-          "command": "openPost.setActiveEnvironment",
-          "when": "view == openPost.environments && viewItem == environment"
-        },
-        {
-          "command": "openPost.renameRequest",
-          "when": "view == openPost.collections && viewItem == request",
-          "group": "inline"
-        },
-        {
-          "command": "openPost.deleteHistoryEntry",
-          "when": "view == openPost.history && viewItem == historyItem",
-          "group": "inline"
-        },
-        {
-          "command": "openPost.renameSnapshot",
-          "when": "view == openPost.snapshots && viewItem == snapshotItem",
-          "group": "inline"
-        },
-        {
-          "command": "openPost.deleteSnapshot",
-          "when": "view == openPost.snapshots && viewItem == snapshotItem",
-          "group": "inline"
-        },
-        {
-          "command": "openPost.deleteSnapshotRecord",
-          "when": "view == openPost.snapshots && viewItem == snapshotRecordItem",
-          "group": "inline"
-        },
-        {
-          "command": "openPost.openSnapshotRecord",
-          "when": "view == openPost.snapshots && viewItem == snapshotRecordItem",
-          "group": "inline"
-        }
+        { "command": "openPost.addCollection", "when": "view == openPost.collections && viewItem == localScope", "group": "inline" },
+        { "command": "openPost.importCollection", "when": "view == openPost.collections && viewItem == localScope", "group": "inline" },
+        { "command": "openPost.addGlobalCollection", "when": "view == openPost.collections && viewItem == globalScope", "group": "inline" },
+        { "command": "openPost.importGlobalCollection", "when": "view == openPost.collections && viewItem == globalScope", "group": "inline" },
+
+        { "command": "openPost.addRequest", "when": "view == openPost.collections && viewItem == collection", "group": "inline" },
+        { "command": "openPost.addRequest", "when": "view == openPost.collections && viewItem == folder", "group": "inline" },
+        { "command": "openPost.addFolder", "when": "view == openPost.collections && viewItem == collection", "group": "inline" },
+        { "command": "openPost.addFolder", "when": "view == openPost.collections && viewItem == folder", "group": "inline" },
+        { "command": "openPost.exportCollection", "when": "view == openPost.collections && viewItem == collection", "group": "inline" },
+        { "command": "openPost.deleteCollection", "when": "view == openPost.collections && viewItem == collection", "group": "inline" },
+        { "command": "openPost.renameRequest", "when": "view == openPost.collections && viewItem == request", "group": "inline" },
+
+        { "command": "openPost.addRequest", "when": "view == openPost.collections && viewItem == globalCollection", "group": "inline" },
+        { "command": "openPost.addRequest", "when": "view == openPost.collections && viewItem == globalFolder", "group": "inline" },
+        { "command": "openPost.addFolder", "when": "view == openPost.collections && viewItem == globalCollection", "group": "inline" },
+        { "command": "openPost.addFolder", "when": "view == openPost.collections && viewItem == globalFolder", "group": "inline" },
+        { "command": "openPost.exportCollection", "when": "view == openPost.collections && viewItem == globalCollection", "group": "inline" },
+        { "command": "openPost.deleteCollection", "when": "view == openPost.collections && viewItem == globalCollection", "group": "inline" },
+        { "command": "openPost.renameRequest", "when": "view == openPost.collections && viewItem == globalRequest", "group": "inline" },
+
+        { "command": "openPost.addEnvironment", "when": "view == openPost.environments && viewItem == localEnvScope", "group": "inline" },
+        { "command": "openPost.addGlobalEnvironment", "when": "view == openPost.environments && viewItem == globalEnvScope", "group": "inline" },
+        { "command": "openPost.deleteEnvironment", "when": "view == openPost.environments && viewItem == environment", "group": "inline" },
+        { "command": "openPost.setActiveEnvironment", "when": "view == openPost.environments && viewItem == environment" },
+        { "command": "openPost.deleteEnvironment", "when": "view == openPost.environments && viewItem == globalEnvironment", "group": "inline" },
+        { "command": "openPost.setActiveEnvironment", "when": "view == openPost.environments && viewItem == globalEnvironment" },
+
+        { "command": "openPost.clearHistory", "when": "view == openPost.history && viewItem == localHistoryScope", "group": "inline" },
+        { "command": "openPost.clearGlobalHistory", "when": "view == openPost.history && viewItem == globalHistoryScope", "group": "inline" },
+        { "command": "openPost.deleteHistoryEntry", "when": "view == openPost.history && viewItem == historyItem", "group": "inline" },
+        { "command": "openPost.deleteHistoryEntry", "when": "view == openPost.history && viewItem == globalHistoryItem", "group": "inline" },
+
+        { "command": "openPost.renameSnapshot", "when": "view == openPost.snapshots && viewItem == snapshotItem", "group": "inline" },
+        { "command": "openPost.deleteSnapshot", "when": "view == openPost.snapshots && viewItem == snapshotItem", "group": "inline" },
+        { "command": "openPost.deleteSnapshotRecord", "when": "view == openPost.snapshots && viewItem == snapshotRecordItem", "group": "inline" },
+        { "command": "openPost.openSnapshotRecord", "when": "view == openPost.snapshots && viewItem == snapshotRecordItem", "group": "inline" }
       ]
     },
     "keybindings": [

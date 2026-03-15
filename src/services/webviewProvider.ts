@@ -108,6 +108,7 @@ export class OpenPostPanel {
   public static currentPanel: OpenPostPanel | undefined;
   public static onDataChanged: (() => void) | undefined;
   public static outputChannel: vscode.OutputChannel | undefined;
+  public static syncSettings: (() => void) | undefined;
   private readonly panel: vscode.WebviewPanel;
   private readonly extensionUri: vscode.Uri;
   private disposables: vscode.Disposable[] = [];
@@ -506,12 +507,24 @@ export class OpenPostPanel {
         break;
       case 'setCookiesEnabled':
         store.saveCookiesEnabled(msg.enabled);
+        vscode.workspace.getConfiguration('openPost').update('cookiesEnabled', msg.enabled, vscode.ConfigurationTarget.Global);
         break;
-      case 'loadTabSettings':
+      case 'setSslVerification':
+        vscode.workspace.getConfiguration('openPost').update('sslVerification', msg.enabled, vscode.ConfigurationTarget.Global);
+        break;
+      case 'loadTabSettings': {
         this.postMessage({ type: 'tabSettings', data: store.loadTabSettings() });
+        // Also push VS Code settings
+        OpenPostPanel.syncSettings?.();
         break;
+      }
       case 'setTabSetting':
         store.saveTabSetting(msg.key, msg.value);
+        {
+          const settingMap: Record<string, string> = { tabViewCollapsed: 'collapsedTabs', tabGrouping: 'groupedTabs', subtleContracts: 'subtleContracts' };
+          const vscKey = settingMap[msg.key];
+          if (vscKey) vscode.workspace.getConfiguration('openPost').update(vscKey, msg.value, vscode.ConfigurationTarget.Global);
+        }
         break;
       case 'loadSnapshots':
         this.postMessage({ type: 'snapshots', data: store.loadSnapshots() });

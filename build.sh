@@ -3,4 +3,6 @@ set -e
 cd "$(dirname "$0")"
 npm run build
 npx vsce package
-echo "✅ $(ls -t *.vsix | head -1) ready"
+VSIX=$(ls -t *.vsix | head -1)
+mv "$VSIX" releases/
+echo "✅ releases/$VSIX ready"

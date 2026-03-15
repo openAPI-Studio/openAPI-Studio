@@ -167,6 +167,15 @@ export default function App() {
           case 'globalActiveEnvironment':
             useAppStore.getState().setGlobalActiveEnvironmentId((m as any).id);
             break;
+          case 'vscodeSettings': {
+            const s = (m as any).data;
+            useAppStore.getState().setSslVerification(s.sslVerification);
+            useAppStore.getState().setCookiesEnabled(s.cookiesEnabled);
+            useAppStore.getState().setTabViewCollapsed(s.tabViewCollapsed);
+            useAppStore.getState().setTabGrouping(s.tabGrouping);
+            useAppStore.getState().setSubtleContracts(s.subtleContracts);
+            break;
+          }
           case 'session': {
             const d = (m as any).data;
             if (d && Array.isArray(d.tabs) && d.tabs.length > 0) {
@@ -233,7 +242,10 @@ export default function App() {
                   <input
                     type="checkbox"
                     checked={sslVerification}
-                    onChange={(e) => setSslVerification(e.target.checked)}
+                    onChange={(e) => {
+                      setSslVerification(e.target.checked);
+                      postMessage({ type: 'setSslVerification', enabled: e.target.checked });
+                    }}
                   />
                   SSL Verification
                 </label>

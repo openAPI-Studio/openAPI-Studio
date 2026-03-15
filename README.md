@@ -6,15 +6,41 @@ Open Post is a lightweight, fully offline VS Code extension for testing REST and
 
 ---
 
+## Quick Start
+
+1. Click the ⚡ **Open Post** icon in the Activity Bar (or press `Cmd+Alt+P` / `Ctrl+Alt+P`)
+2. The webview panel opens automatically alongside the sidebar tree views
+3. Enter a URL and click **Send** (or `Cmd+Enter` / `Ctrl+Enter`)
+
+**Try it now:**
+
+```
+GET  https://jsonplaceholder.typicode.com/posts/1
+GET  https://jsonplaceholder.typicode.com/users
+POST https://jsonplaceholder.typicode.com/posts
+     Body (JSON): { "title": "Hello", "body": "World", "userId": 1 }
+```
+
+**5-minute workflow:**
+
+1. **Create an environment** — click Environments tab → New Environment → add `base_url = https://jsonplaceholder.typicode.com`
+2. **Create a collection** — click Collections tab → type a name → press Enter
+3. **Build a request** — enter `{{base_url}}/posts/1`, click Send
+4. **Save it** — click Save in the request builder, pick your collection
+5. **Export code** — click the `</>` button to generate code in 11 languages
+
+---
+
 ## Features
 
-### 🚀 Full HTTP Client
-- All HTTP methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`
+### 🚀 HTTP Client
+- All methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`
 - Query parameters with bidirectional URL sync
-- Custom headers with autocomplete for standard headers
-- Send requests with `Ctrl+Enter` / `Cmd+Enter`
+- Custom headers with autocomplete for standard HTTP headers
+- Multi-tab interface with session persistence — tabs restore when you reopen the panel
 
 ### 📝 Body Types
+
 | Type | Use Case |
 |------|----------|
 | JSON | Most REST APIs |
@@ -32,7 +58,9 @@ Open Post is a lightweight, fully offline VS Code extension for testing REST and
 - **OAuth 2.0** — authorization code & client credentials flows
 - **AWS Signature V4** — access key, secret, region, service
 
-### 🌍 Environment Variables
+Auth is automatically injected into generated code exports.
+
+### 🌍 Environments
 Create environments (Dev, Staging, Production) with key-value variables. Use `{{variable}}` syntax anywhere — URL, headers, body. Switch environments from the top bar dropdown.
 
 ```
@@ -41,33 +69,50 @@ Header: Authorization: Bearer {{token}}
 Body:   { "api_key": "{{api_key}}" }
 ```
 
-### 📁 Collections
-Organize requests into collections with collapsible tree navigation in the sidebar. Collections are stored as JSON — fully git-friendly for team sharing.
+### 📁 Collections & Folders
+- Organize requests into collections with nested folder trees
+- **Local collections** — stored per workspace in `.openpost/`
+- **Global collections** — stored in `~/.openpost/global/`, shared across all workspaces
+- Import/export as Open Post JSON or Postman v2.1 format
+- Import from OpenAPI / Swagger specs (auto-creates collection + environment)
+- Full CRUD from both the sidebar and VS Code native tree views
+
+### 🌐 Global Storage & Cross-Window Sync
+- Global collections, environments, and history live in `~/.openpost/global/`
+- Changes sync across VS Code windows automatically via file system watcher
+- Both the webview sidebar and VS Code tree views show Local and Global groups
+- Requests track their source scope so saves go back to the right place
 
 ### 📊 Response Viewer
 - Status code with color indicator (green/yellow/red)
 - Response time and body size
-- Pretty-printed JSON with syntax highlighting
-- Raw body view
-- Collapsible JSON tree view
+- Syntax highlighting with line numbers and code folding
+- Pretty-printed JSON, raw body, and collapsible tree view
 - Response headers table
-- **History dropdown** — browse or delete past responses for the current URL
+- Schema extraction for JSON responses
+- History dropdown — browse or delete past responses per URL
 
 ### 📚 History & Snapshots
-- **Automatic request history** — every send is stored locally in `.openpost/history.json`
-- **Per-entry history delete** — remove selected entries from the response dropdown or History sidebar
-- **Automatic snapshots for saved requests** — when a request is saved to a collection, a snapshot contract is created automatically
-- **Automatic snapshot records** — every subsequent send for that saved request is captured under its snapshot
-- **Manual snapshot tools** — add records or rename/delete snapshots from the bookmark menu and sidebars
+- **Request history** — every send is stored locally, browsable from the sidebar
+- **Global history** — shared across workspaces
+- **Snapshot contracts** — track response structure changes over time
+- **Automatic snapshot records** — every send for a saved request is captured
+- **Variant detection** — notifies when a response returns a new JSON structure
+- Rename, delete, and browse snapshots from the sidebar or tree view
+
+### 🍪 Cookie Jar
+- Automatic cookie storage and sending across requests
+- Cookie manager accessible from the settings menu
+- Toggle cookies on/off per workspace
 
 ### 💻 Code Export
-Generate ready-to-use code in **12 languages** from your current request:
-- cURL
-- JavaScript (Fetch & Axios)
-- Python (Requests & http.client)
-- Go, Java, C#, Ruby, PHP, Rust, Swift
+Generate ready-to-use code from your request in **11 languages**:
 
-Environment variables are resolved in generated code. Toggle the code panel with the `</>` button next to Send.
+cURL · JavaScript (Fetch) · JavaScript (Axios) · Python (Requests) · Python (http.client) · Go · Java · C# · Ruby · PHP · Rust · Swift
+
+- Environment variables are resolved in generated code
+- Auth headers/params are injected automatically
+- Toggle the code panel with the `</>` button next to Send
 
 ### 🤖 AI Prompt Generator
 Generate copy-paste-ready prompts for AI tools with 5 dialects:
@@ -77,7 +122,7 @@ Generate copy-paste-ready prompts for AI tools with 5 dialects:
 - **Write Tests** — generate test cases
 - **Generate Docs** — create API documentation
 
-Includes full request details: method, URL, auth, headers, body, and response.
+Includes full request context: method, URL, auth, headers, body, and response.
 
 ### 📜 Pre-Request & Test Scripts
 Write JavaScript that runs before or after requests:
@@ -92,10 +137,24 @@ const body = response.json();
 console.assert(body.id !== undefined, "Should have id");
 ```
 
+### 📥 Import & Export
+- **Postman v2.1** — import and export collections
+- **OpenAPI / Swagger** — import specs (JSON or YAML) to auto-generate collections and environments
+- **cURL** — import cURL commands
+- **Open Post JSON** — native format, git-friendly
+
 ### ⚙️ Settings
-- **SSL Verification** toggle — disable to allow self-signed certificates
-- **Clear History** — wipe all request history
-- Access from the gear icon in the top bar
+All settings available in two places:
+- **Webview popup** — gear icon in the top bar
+- **VS Code Settings** — Settings → Extensions → Open Post
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| SSL Verification | ✅ On | Disable for self-signed certificates |
+| Cookies Enabled | ✅ On | Auto-store and send cookies |
+| Collapsed Tabs | Off | Compact tab bar view |
+| Grouped Tabs | Off | Group tabs by collection |
+| Subtle Contracts | Off | Non-intrusive contract change notifications |
 
 ### 🎨 Theme Integration
 Adapts to your VS Code theme — dark, light, and high contrast. All colors use native VS Code CSS variables.
@@ -104,15 +163,15 @@ Adapts to your VS Code theme — dark, light, and high contrast. All colors use 
 
 ## Installation
 
-### From VSIX
+### From Marketplace
+Search for **Open Post** in the VS Code Extensions panel and click Install.
 
-1. Open VS Code
-2. `Ctrl+Shift+P` / `Cmd+Shift+P` → **Extensions: Install from VSIX...**
-3. Select the `.vsix` file
-4. Reload VS Code
+### From VSIX
+1. `Cmd+Shift+P` / `Ctrl+Shift+P` → **Extensions: Install from VSIX...**
+2. Select the `.vsix` file
+3. Reload VS Code
 
 ### From Source
-
 ```bash
 git clone https://github.com/open-post/open-post.git
 cd open-post
@@ -124,21 +183,19 @@ code --install-extension open-post-*.vsix
 
 ---
 
-## Getting Started
-
-1. Click the ⚡ Open Post icon in the Activity Bar (or `Ctrl+Shift+P` → `Open Post: New Request`)
-2. Enter a URL: `https://jsonplaceholder.typicode.com/posts/1`
-3. Click **Send** (or `Ctrl+Enter`)
-4. View the response below
-
----
-
 ## Data Storage
 
-All data is stored locally in your workspace:
-
 ```
-.openpost/
+.openpost/                    ← per workspace (local)
+  ├── collections.json
+  ├── environments.json
+  ├── history.json
+  ├── snapshots.json
+  ├── cookies.json
+  ├── session.json
+  └── config.json
+
+~/.openpost/global/           ← shared across workspaces (global)
   ├── collections.json
   ├── environments.json
   ├── history.json
