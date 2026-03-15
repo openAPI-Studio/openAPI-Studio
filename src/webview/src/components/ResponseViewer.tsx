@@ -607,26 +607,49 @@ export function ResponseViewer() {
               <p className="text-[11px] opacity-30 py-4 text-center">No cookies in this response</p>
             ) : (
               <>
-                <div className="flex px-2.5 py-1.5 text-[10px] uppercase tracking-wider opacity-40 font-semibold" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                  <span className="w-[20%] shrink-0">Name</span>
-                  <span className="w-[25%] shrink-0">Value</span>
-                  <span className="w-[15%] shrink-0">Domain</span>
-                  <span className="w-[10%] shrink-0">Path</span>
-                  <span className="w-[15%] shrink-0">Expires</span>
-                  <span className="w-[15%]">Flags</span>
+                <div className="flex items-center justify-between px-2.5 py-1.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div className="flex text-[10px] uppercase tracking-wider opacity-40 font-semibold flex-1">
+                    <span className="w-[20%] shrink-0">Name</span>
+                    <span className="w-[25%] shrink-0">Value</span>
+                    <span className="w-[15%] shrink-0">Domain</span>
+                    <span className="w-[10%] shrink-0">Path</span>
+                    <span className="w-[15%] shrink-0">Expires</span>
+                    <span className="w-[12%]">Flags</span>
+                  </div>
+                  <button
+                    className="text-[9px] opacity-40 hover:opacity-100 px-1.5 py-0.5 rounded shrink-0"
+                    style={{ background: 'rgba(128,128,128,0.15)' }}
+                    onClick={() => {
+                      postMessage({ type: 'clearCookies' });
+                      const r = useAppStore.getState().response;
+                      if (r) useAppStore.getState().setResponse({ ...r, cookies: [] });
+                      addToast({ type: 'info', message: 'All cookies cleared' });
+                    }}
+                    title="Clear all cookies from jar"
+                  >Clear All</button>
                 </div>
                 {response.cookies.map((c, i) => (
-                  <div key={i} className="flex px-2.5 py-1.5 text-[11px] font-mono items-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div key={i} className="flex px-2.5 py-1.5 text-[11px] font-mono items-center group" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                     <span className="w-[20%] shrink-0 truncate font-medium opacity-70" title={c.name}>{c.name}</span>
                     <span className="w-[25%] shrink-0 truncate opacity-40" title={c.value}>{c.value}</span>
                     <span className="w-[15%] shrink-0 truncate opacity-40">{c.domain}</span>
                     <span className="w-[10%] shrink-0 truncate opacity-40">{c.path}</span>
                     <span className="w-[15%] shrink-0 truncate opacity-40">{c.expires ? new Date(c.expires).toLocaleDateString() : 'Session'}</span>
-                    <span className="w-[15%] flex gap-1 flex-wrap">
+                    <span className="w-[12%] flex gap-1 flex-wrap">
                       {c.httpOnly && <span className="px-1 rounded text-[9px] opacity-60" style={{ background: 'rgba(128,128,128,0.2)' }}>HttpOnly</span>}
                       {c.secure && <span className="px-1 rounded text-[9px] opacity-60" style={{ background: 'rgba(128,128,128,0.2)' }}>Secure</span>}
                       {c.sameSite && <span className="px-1 rounded text-[9px] opacity-60" style={{ background: 'rgba(128,128,128,0.2)' }}>{c.sameSite}</span>}
                     </span>
+                    <button
+                      className="opacity-0 group-hover:opacity-50 hover:!opacity-100 shrink-0 ml-1"
+                      onClick={() => {
+                        postMessage({ type: 'deleteCookie', domain: c.domain, name: c.name, path: c.path });
+                        const r = useAppStore.getState().response;
+                        if (r) useAppStore.getState().setResponse({ ...r, cookies: (r.cookies || []).filter(x => !(x.domain === c.domain && x.name === c.name && x.path === c.path)) });
+                        addToast({ type: 'info', message: `Cookie "${c.name}" deleted` });
+                      }}
+                      title={`Delete "${c.name}"`}
+                    ><Trash2 size={10} /></button>
                   </div>
                 ))}
               </>

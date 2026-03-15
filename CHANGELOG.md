@@ -1,12 +1,16 @@
 # Changelog
 
-## 0.9.36 — 2026-03-15
+## 1.0.2 — 2026-03-15
 - Global collections, environments, and history now visible in VS Code native tree views (sidebar)
 - "Local" and "Global" grouping nodes in Collections, Environments, and History panels
 - Full CRUD support for global items from the tree view (create, delete, rename, export, import, add folder/request)
-- VS Code Settings integration — all plugin settings (SSL, Cookies, Collapsed Tabs, Grouped Tabs, Subtle Contracts) now available in Settings > Extensions > Open Post
+- VS Code Settings integration — all plugin settings now available in Settings > Extensions > Open Post
 - Bidirectional sync between VS Code Settings UI and webview settings popup
 - Inline action buttons (export, subfolder, new request, delete) on global tree items
+- Clicking the Open Post icon in the activity bar now auto-opens the webview panel
+- Cookie delete (individual and clear all) in the response viewer cookies tab with instant UI update
+- Updated README with full feature documentation and quick start guide
+- Comprehensive changelog reconstructed from git history
 
 ## 0.9.34 — 2026-03-14
 - Completely rewritten code export engine with auth injection support for all auth types
